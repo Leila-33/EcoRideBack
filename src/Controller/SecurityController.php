@@ -134,10 +134,14 @@ $context = [
     AbstractNormalizer::CALLBACKS => [
         // all callback parameters are optional (you can omit the ones you don't use)
         'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof \Voiture ? $attributeValue->format(\Voiture::ATOM) : '';
+            return $attributeValue instanceof Voiture ? $attributeValue : '';
         },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof \Marque ? $attributeValue->format(\Marque::ATOM) : '';
+            return $attributeValue instanceof Marque ? $attributeValue : '';
         },
+        'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof User ? $attributeValue : '';
+        },
+        
     ],
 ];
 
@@ -213,7 +217,9 @@ public function allVoitures(): JsonResponse
                 return $attributeValue instanceof Voiture ? $attributeValue: '';
             },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
                 return $attributeValue instanceof Marque ? $attributeValue : '';
-            },
+            },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof User ? $attributeValue : '';
+        },
         ]
 ];
 $responseData = $this->serializer->serialize($voitures, 'json',$context);
