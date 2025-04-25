@@ -88,7 +88,7 @@ class RoleController extends AbstractController
 
     }
     
-        #[Route('/{id}', name: 'show', methods: 'GET')]
+        #[Route(name: 'show', methods: 'GET')]
         /** @OA\Get(
      *     path="/api/role/{id}",
      *     summary="Afficher un role par ID",
@@ -116,12 +116,26 @@ class RoleController extends AbstractController
      *     )
      * )
      */
-        public function show(int $id): JsonResponse
+        public function show(): JsonResponse
         {
-            $role = $this->getUser()->findOneBy(['immatriculation' => $id]);
+            $role = $this->getUser()->getRole();
     
             if ($role) {
-                $responseData = $this->serializer->serialize($role,  'json');
+                $context = [
+                    AbstractNormalizer::CALLBACKS => [
+                        // all callback parameters are optional (you can omit the ones you don't use)
+                        'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                            return $attributeValue instanceof Voiture ? $attributeValue : '';
+                        },
+                        'role' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                            return $attributeValue instanceof Role ? $attributeValue : '';
+                        },
+        
+                    ],
+                   
+           
+                ];
+                $responseData = $this->serializer->serialize($role,  'json',$context);
                 return new jsonResponse($responseData, Response::HTTP_OK, [], true);
 
             }
