@@ -20,6 +20,7 @@ use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Normalizer\AbstractObjectNormalizer;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
+use Symfony\Component\Serializer\Exception\Exception;
 
 use OpenApi\Annotations as OA;
 
@@ -32,8 +33,8 @@ class SecurityController extends AbstractController
     )
     {
     }
-
-
+    
+ 
   #[Route('/registration', name: 'registration', methods: 'POST')]
   /** @OA\Post(
      *     path="/api/registration",
@@ -131,7 +132,16 @@ class SecurityController extends AbstractController
         $user = $this->getUser();
        
 $context = [
+    AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
+        if (!$object instanceof User) {
+            throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
+        }
+
+        // serialize the nested Organization with only the name (and not the members)
+        return $object->getNom();
+    },
     AbstractNormalizer::CALLBACKS => [
+        
         // all callback parameters are optional (you can omit the ones you don't use)
         'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
             return $attributeValue instanceof Voiture ? $attributeValue : '';
@@ -140,6 +150,10 @@ $context = [
         },
         'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
             return $attributeValue instanceof User ? $attributeValue : '';
+        }, 'configuration' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof Parametre ? $attributeValue : '';
+        }, 'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof Covoiturage ? $attributeValue : '';
         },
         
     ],
@@ -151,21 +165,62 @@ $context = [
     }
     #[Route('/account/edit', name: 'edit', methods: 'PUT')]
     public function edit(Request $request): JsonResponse
-    {  
-        $user = $this->serializer->deserialize(
-            $request->getContent(),
-             User::class,
-            'json',
-            [AbstractNormalizer::OBJECT_TO_POPULATE => $this->getUser()],
-        );  
-        if (isset($request->toArray()['password'])){
-            $user->setPassword($this->passwordHasher->hashPassword($user, $user->getPassword()));}
+    {  $data = json_decode($request->getContent(), true);
+        if (!empty($data['photo'])){
+        $photoB64=base64_decode($data['photo']);
+        $stream=fopen('php://memory','r+');
+        fwrite($stream,$photoB64);
+        rewind($stream);
+    $mime=null;
+$imgInfo=@getimagesizefromstring($photoB64);
+var_dump($imgInfo);
+if ($imgInfo && isset($imgInfo['mime'])){$mime=$imgInfo['mime'];}}
+        else{$stream=null;}
+        $user = $this->getUser();
+        $user->setPhoto($stream);
+        $user->setPhotoMime($mime);
+        $user->setNom($data['nom']??'');
+        $user->setPrenom($data['prenom']??'');
+        $user->setDateNaissance($data['date_naissance']??'');
+        $user->setTelephone($data['telephone']??'');
+        $user->setAdresse($data['adresse']??'');
+
+        if (!empty($data['password'])){
+            $user->setPassword($this->passwordHasher->hashPassword($user, $data['password']));}
             
         $this->manager->flush();
-        $responseData = $this->serializer->serialize($user, 'json');
+        $context = [
+            AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
+                if (!$object instanceof User) {
+                    throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
+                }
+        
+                // serialize the nested Organization with only the name (and not the members)
+                return $object->getNom();
+            },
+            AbstractNormalizer::CALLBACKS => [
+                
+                // all callback parameters are optional (you can omit the ones you don't use)
+                'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                    return $attributeValue instanceof Voiture ? $attributeValue : '';
+                },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                    return $attributeValue instanceof Marque ? $attributeValue : '';
+                },
+                'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                    return $attributeValue instanceof User ? $attributeValue : '';
+                }, 'configuration' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                    return $attributeValue instanceof Parametre ? $attributeValue : '';
+                }, 'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                    return $attributeValue instanceof Covoiturage ? $attributeValue : '';
+                },
+                
+            ],
+        ];
+        
+                $responseData = $this->serializer->serialize($user, 'json',$context);
+      
         return new JsonResponse($responseData, Response::HTTP_OK, [], true);
  
-        //return new jsonResponse(null, Response::HTTP_NOT_CONTENT);
         }
 
 
@@ -175,7 +230,8 @@ $context = [
             $voiture = $this->serializer->deserialize($request->getContent(), Voiture::class, 'json');
             /*$voiture1 = $this->voiturerepository->findOneBy(['immatriculation' => $voiture->getImmatriculation()]);
             if ($voiture1){}*/
-            
+            $plaque = $this->voiturerepository->findOneBy(['immatriculation' => $voiture->getImmatriculation()]);
+
             $libelle=$voiture->getMarque()->getLibelle();
             $marque = $this->repository->findOneBy(['libelle' => $libelle]);
             if ($marque) {$marque->addVoiture($voiture);}
@@ -184,14 +240,30 @@ $context = [
             $this->getUser()->addVoiture($voiture);
             $this->manager->persist($voiture);
             $this->manager->flush();
-            $context = [
+            $context = [ AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
+                if (!$object instanceof User) {
+                    throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
+                }
+        
+                // serialize the nested Organization with only the name (and not the members)
+                return $object->getNom();
+            },
                 AbstractNormalizer::CALLBACKS => [
                     // all callback parameters are optional (you can omit the ones you don't use)
                     'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
                         return $attributeValue instanceof Voiture ? $attributeValue : '';
                     },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
                         return $attributeValue instanceof Marque ? $attributeValue : '';
-                    },
+                    },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                        return $attributeValue instanceof User ? $attributeValue : '';
+                    }, 'user' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                        return $attributeValue instanceof User ? $attributeValue : get_class($attributeValue);
+                    },'configuration' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                    return $attributeValue instanceof Configuration ? $attributeValue : '';
+                }, 'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                    return $attributeValue instanceof Covoiturage ? $attributeValue : '';
+                },
+
 
                 ],
             ];
@@ -211,6 +283,13 @@ public function allVoitures(): JsonResponse
  
    
     $context = [
+          AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
+     
+            if ($object instanceof User) {return $object->getNom();}
+            else if ($object instanceof Configuration) {return $object->getId();}
+            else if ($object instanceof Voiture) {return $object->getId();}
+            else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
+            },
         AbstractNormalizer::CALLBACKS => [
             // all callback parameters are optional (you can omit the ones you don't use)
             'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
@@ -219,6 +298,10 @@ public function allVoitures(): JsonResponse
                 return $attributeValue instanceof Marque ? $attributeValue : '';
             },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
             return $attributeValue instanceof User ? $attributeValue : '';
+        }, 'configurations' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof Parametre ? $attributeValue : '';
+        },  'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof Covoiturage ? $attributeValue : '';
         },
         ]
 ];

@@ -62,12 +62,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\ManyToMany(targetEntity: Covoiturage::class, inversedBy: 'users')]
     private Collection $covoiturages;
-
-    #[ORM\OneToMany(targetEntity: Configuration::class, mappedBy: 'user', orphanRemoval: true)]
+    #[MaxDepth(1)]
+    #[ORM\OneToMany(targetEntity: Configuration::class, mappedBy: 'user', orphanRemoval: true, fetch:'EAGER')]
     private Collection $configurations;
 
     #[ORM\Column(length: 255)]
     private ?string $apiToken = null;
+
+    #[ORM\Column(length: 50, nullable: true)]
+    private ?string $photoMime = null;
 
  
     public function __construct()
@@ -229,11 +232,17 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getPhoto()
+    /*public function getPhoto()
     {
         return $this->photo;
+    }*/
+    public function getPhoto(): ?string
+    {
+        if (!is_resource($this->photo)){
+        return null;}
+        rewind($this->photo);
+        return base64_encode(stream_get_contents($this->photo));
     }
-
     public function setPhoto($photo): static
     {
         $this->photo = $photo;
@@ -399,6 +408,18 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setApiToken(string $apiToken): static
     {
         $this->apiToken = $apiToken;
+
+        return $this;
+    }
+
+    public function getPhotoMime(): ?string
+    {
+        return $this->photoMime;
+    }
+
+    public function setPhotoMime(?string $photoMime): static
+    {
+        $this->photoMime = $photoMime;
 
         return $this;
     }

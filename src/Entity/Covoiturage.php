@@ -43,12 +43,18 @@ class Covoiturage
     #[ORM\Column]
     private ?float $prix_personne = null;
 
-    #[ORM\ManyToOne(inversedBy: 'covoiturages')]
+    #[ORM\ManyToOne(inversedBy: 'covoiturages',fetch:'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Voiture $voiture = null;
 
     #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'covoiturages')]
     private Collection $users;
+
+    #[ORM\Column(type: Types::ARRAY, nullable: true)]
+    private ?array $reponses = null;
+
+    #[ORM\Column(type: Types::ARRAY, nullable: true)]
+    private ?array $reponses1 = null;
 
     public function __construct()
     {
@@ -203,6 +209,30 @@ class Covoiturage
         if ($this->users->removeElement($user)) {
             $user->removeCovoiturage($this);
         }
+
+        return $this;
+    }
+
+    public function getReponses(): ?array
+    {
+        return $this->reponses;
+    }
+
+    public function setReponse(int $id,string $reponse): static
+    {
+        $this->reponses[$id] = $reponse;
+
+        return $this;
+    }
+
+    public function getReponses1(): ?array
+    {
+        return $this->reponses1;
+    }
+
+    public function setReponse1(int $id,string $reponse1): static
+    {
+        $this->reponses1[$id] = $reponse1;
 
         return $this;
     }

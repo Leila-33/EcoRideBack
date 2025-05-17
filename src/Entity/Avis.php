@@ -28,10 +28,12 @@ class Avis
     #[ORM\JoinColumn(nullable: false)]
     private ?user $user = null;
 
+    #[ORM\Column]
+    private ?int $idChauffeur = null;
+
   
     public function __construct()
     {
-        $this->users = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -78,10 +80,6 @@ class Avis
     /**
      * @return Collection<int, User>
      */
-    public function getUsers(): Collection
-    {
-        return $this->users;
-    }
 
     public function getUser(): ?user
     {
@@ -91,6 +89,18 @@ class Avis
     public function setUser(?user $user): static
     {
         $this->user = $user;
+
+        return $this;
+    }
+
+    public function getIdChauffeur(): ?int
+    {
+        return $this->idChauffeur;
+    }
+
+    public function setIdChauffeur(int $idChauffeur): static
+    {
+        $this->idChauffeur = $idChauffeur;
 
         return $this;
     }
