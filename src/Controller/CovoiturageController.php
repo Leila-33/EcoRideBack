@@ -11,6 +11,8 @@ use App\Entity\Configuration;
 
 use App\Repository\CovoiturageRepository;
 use App\Repository\VoitureRepository;
+use App\Repository\AvisRepository;
+
 use Datetime;
 use DateTimeImmutable ;
 use Doctrine\ORM\EntityManagerInterface;
@@ -30,7 +32,9 @@ class CovoiturageController extends AbstractController
         private CovoiturageRepository $repository,
         private VoitureRepository $voiturerepository,
         private SerializerInterface $serializer,
-        private UrlGeneratorInterface $urlGenerator
+        private UrlGeneratorInterface $urlGenerator,
+        private AvisRepository $avisrepository,
+
     ){}
 
 
@@ -151,8 +155,8 @@ return new JsonResponse($responseData, Response::HTTP_OK, [], true);
     #[Route('/Covoiturages/{lieuDepart}/{lieuArrivee}/{dateDepart}', name: 'Covoiturages', methods: 'GET')]
 public function Covoiturages(string $lieuDepart,string $lieuArrivee,string $dateDepart): JsonResponse
 {
-            $covoiturage = $this->repository->findBy(['lieu_depart' => $lieuDepart,'lieu_arrivee' => $lieuArrivee,'date_depart' => new Datetime($dateDepart)]);
- 
+           // $covoiturage = $this->repository->findBy(['lieu_depart' => $lieuDepart,'lieu_arrivee' => $lieuArrivee,'date_depart' => new Datetime($dateDepart), 'statut' => 'en attente', 'nb_places'=> 'nb_places'>0]);
+        $covoiturage= $this->repository->findByNbPlace($lieuDepart,$lieuArrivee,$dateDepart);
    
     $context = [
         AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
@@ -184,8 +188,90 @@ public function Covoiturages(string $lieuDepart,string $lieuArrivee,string $date
             }
             return new jsonResponse(null, status: Response::HTTP_NOT_FOUND);
 
-}
-        #[Route('/{id}', name: 'show', methods: 'GET')]
+}    
+/*#[Route('/allCovoiturages', name: 'allCovoiturages', methods: 'GET')]
+public function allCovoiturages(): JsonResponse
+{
+    $covoiturages = $this->getUser()->getCovoiturages();
+ 
+   
+    $context = [
+        AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
+     
+            if ($object instanceof User) {return $object->getNom();}
+            else if ($object instanceof Configuration) {return $object->getId();}
+            else if ($object instanceof Voiture) {return $object->getId();}
+            else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
+            },
+        AbstractNormalizer::CALLBACKS => [
+            // all callback parameters are optional (you can omit the ones you don't use)
+            'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                return $attributeValue instanceof Voiture ? $attributeValue: '';
+            },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                return $attributeValue instanceof Marque ? $attributeValue : '';
+            },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof User ? $attributeValue : '';
+        },  'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof Covoiturage ? $attributeValue : '';
+        },
+        
+        ]
+];
+$responseData = $this->serializer->serialize($covoiturages, 'json',$context);
+return new JsonResponse($responseData, Response::HTTP_OK, [], true);
+}*/
+   
+    #[Route('/Covoiturage/{lieuDepart}/{lieuArrivee}/{dateDepart}/{prixPersonne}/{duree}/{note}/{energie}', name: 'Covoiturage', methods: 'GET')]
+public function CovoituragesFiltre(string $lieuDepart,string $lieuArrivee,string $dateDepart, int $prixPersonne, string $duree, int $note, string $energie): JsonResponse
+{
+        $covoiturages= $this->repository->findByPrice($lieuDepart,$lieuArrivee,$dateDepart,$prixPersonne, $duree);
+        $covoiturages1=[];
+        foreach($covoiturages as $covoiturage){
+        $covoiturage1 = $this->repository->findOneBy(['id' => $covoiturage['id']]);
+        if ($covoiturage1->getVoiture()->getEnergie()==$energie){
+        $idChauffeur=$covoiturage1->getVoiture()->getUser()->getId();
+        $avis=$this->avisrepository->findBy(['idChauffeur' => $idChauffeur]);   
+        $noteChauffeur=0;
+        foreach($avis as $avi){
+            $noteChauffeur+=$avi->getNote();
+        }
+        $noteChauffeur/=count($avis);
+        if ($note<=$noteChauffeur){$covoiturages1[]=$covoiturage1;}
+
+    }}
+
+    $context = [
+        AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
+     
+            if ($object instanceof User) {return $object->getNom();}
+            else if ($object instanceof Configuration) {return $object->getId();}
+            else if ($object instanceof Voiture) {return $object->getId();}
+            else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
+            },
+        AbstractNormalizer::CALLBACKS => [
+            // all callback parameters are optional (you can omit the ones you don't use)
+            'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                return $attributeValue instanceof Voiture ? $attributeValue: '';
+            },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+                return $attributeValue instanceof Marque ? $attributeValue : '';
+            },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof User ? $attributeValue : '';
+        },  'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
+            return $attributeValue instanceof Covoiturage ? $attributeValue : '';
+        },
+        
+        ]
+];
+
+            if ($covoiturages) {
+                $responseData = $this->serializer->serialize($covoiturages1,  'json',$context);
+                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
+
+            }
+            return new jsonResponse(null, status: Response::HTTP_OK);
+
+} 
+        #[Route('/c/{id}', name: 'show', methods: 'GET')]
         /** @OA\Get(
      *     path="/api/covoiturage/{id}",
      *     summary="Afficher un covoiturage par ID",
@@ -382,5 +468,22 @@ public function Covoiturages(string $lieuDepart,string $lieuArrivee,string $date
 
             
                 }
-}
-   
+
+
+    #[Route('/prixMaximumEtMinimum/{lieuDepart}/{lieuArrivee}/{dateDepart}', name: 'prixMaximum', methods: 'GET')]
+public function prixMaximumEtMinimum(string $lieuDepart,string $lieuArrivee,string $dateDepart): JsonResponse
+{
+        $prixEtDureeMaximumEtMinimum= $this->repository->findMaximumPrice($lieuDepart,$lieuArrivee,$dateDepart);
+        $prixEtDureeMaximumEtMinimum[1]= $this->repository->findMinimumPrice($lieuDepart,$lieuArrivee,$dateDepart)[0];
+        $prixEtDureeMaximumEtMinimum[2]=$this->repository->findDureeMaximum($lieuDepart,$lieuArrivee,$dateDepart)[0]; 
+        $prixEtDureeMaximumEtMinimum[3]=$this->repository->findDureeMinimum($lieuDepart,$lieuArrivee,$dateDepart)[0]; 
+
+
+  
+            if ($prixEtDureeMaximumEtMinimum) {
+                $responseData = $this->serializer->serialize($prixEtDureeMaximumEtMinimum,  'json');
+                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
+
+            }
+            return new jsonResponse(null, status: Response::HTTP_NOT_FOUND);
+        }}
