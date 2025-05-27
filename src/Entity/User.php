@@ -72,6 +72,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $photoMime = null;
 
+    #[ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?Credit $credit = null;
+
+    #[ORM\OneToMany(targetEntity: Operation::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $operation;
+
+
+
  
     public function __construct()
     {
@@ -81,6 +90,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->covoiturages = new ArrayCollection();
         $this->configurations = new ArrayCollection();
         $this->apiToken=bin2hex(random_bytes(20));
+        $this->operation = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -423,6 +433,49 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
         return $this;
     }
+
+    public function getCredit(): ?Credit
+    {
+        return $this->credit;
+    }
+
+    public function setCredit(Credit $credit): static
+    {
+        $this->credit = $credit;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Operation>
+     */
+    public function getOperation(): Collection
+    {
+        return $this->operation;
+    }
+
+    public function addOperation(Operation $operation): static
+    {
+        if (!$this->operation->contains($operation)) {
+            $this->operation->add($operation);
+            $operation->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeOperation(Operation $operation): static
+    {
+        if ($this->operation->removeElement($operation)) {
+            // set the owning side to null (unless already changed)
+            if ($operation->getUser() === $this) {
+                $operation->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
 
 
 }

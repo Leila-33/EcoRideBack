@@ -56,6 +56,9 @@ class Covoiturage
     #[ORM\Column(type: Types::ARRAY, nullable: true)]
     private ?array $reponses1 = null;
 
+    #[ORM\Column(nullable: true)]
+    private ?float $noteChauffeur = null;
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
@@ -233,6 +236,18 @@ class Covoiturage
     public function setReponse1(int $id,string $reponse1): static
     {
         $this->reponses1[$id] = $reponse1;
+
+        return $this;
+    }
+
+    public function getNoteChauffeur(): ?float
+    {
+        return $this->noteChauffeur;
+    }
+
+    public function setNoteChauffeur(?float $noteChauffeur): static
+    {
+        $this->noteChauffeur = $noteChauffeur;
 
         return $this;
     }

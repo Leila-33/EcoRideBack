@@ -4,6 +4,8 @@ namespace App\Controller;
 use App\Entity\User;
 use App\Entity\Voiture;
 use App\Entity\Marque;
+use App\Entity\Credit;
+
 use App\Repository\MarqueRepository;
 use App\Repository\VoitureRepository;
 
@@ -67,7 +69,10 @@ class SecurityController extends AbstractController
     {
         $user = $this->serializer->deserialize($request->getContent(), User::class, 'json');
         $user->setPassword($this->passwordHasher->hashPassword($user, $user->getPassword()));
-
+        $credit=new Credit;
+        $credit->setTotal(20);
+        $credit->setUser($user);
+        $this->manager->persist($credit);
         $this->manager->persist($user);
         $this->manager->flush();
         return new JsonResponse(
@@ -173,7 +178,6 @@ $context = [
         rewind($stream);
     $mime=null;
 $imgInfo=@getimagesizefromstring($photoB64);
-var_dump($imgInfo);
 if ($imgInfo && isset($imgInfo['mime'])){$mime=$imgInfo['mime'];}}
         else{$stream=null;}
         $user = $this->getUser();
@@ -184,6 +188,9 @@ if ($imgInfo && isset($imgInfo['mime'])){$mime=$imgInfo['mime'];}}
         $user->setDateNaissance($data['date_naissance']??'');
         $user->setTelephone($data['telephone']??'');
         $user->setAdresse($data['adresse']??'');
+        $credit=new Credit;
+        $credit->setTotal(20);
+        $user->setCredit($credit);
 
         if (!empty($data['password'])){
             $user->setPassword($this->passwordHasher->hashPassword($user, $data['password']));}
