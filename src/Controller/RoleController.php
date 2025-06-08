@@ -2,10 +2,9 @@
 
 namespace App\Controller;
 use OpenApi\Annotations as OA;
+include_once 'Context.php';
 
 use App\Entity\Role;
-use App\Entity\Voiture;
-use App\Entity\User;
 
 use App\Repository\RoleRepository;
 
@@ -60,52 +59,12 @@ class RoleController extends AbstractController
     $role = $this->serializer->deserialize($request->getContent(), Role::class, 'json');  
     $libelle=$role->getLibelle();
     $roleFound = $this->repository->findOneBy(['libelle' => $libelle]);
- 
-        if ($roleFound) {$this->getUser()->addRole($roleFound);
-            $roleFound->addUser($this->getUser());}
-        else{$this->getUser()->addRole($role);
-            $role->addUser($this->getUser());
+    if ($roleFound) {$roleFound->addUser($this->getUser());
+        $role=$roleFound;}
+    else{ $role->addUser($this->getUser());
             $this->manager->persist($role);}
         $this->manager->flush();
-        $context = [   AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-            if (!$object instanceof Voiture) {
-                throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
-            }
-    
-            // serialize the nested Organization with only the name (and not the members)
-            return $object->getId();
-        },AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-            if (!$object instanceof User) {
-                throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
-            }
-    
-            // serialize the nested Organization with only the name (and not the members)
-            return $object->getId();
-        },
-            AbstractNormalizer::CALLBACKS => [
-                // all callback parameters are optional (you can omit the ones you don't use)
-                'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Voiture ? $attributeValue : '';
-                },
-                'role' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Role ? $attributeValue : '';
-                },'configuration' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Configuration ? $attributeValue : '';
-                },'user' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                        return $attributeValue instanceof User ? $attributeValue : get_class($attributeValue);
-                    },'voiture' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Voiture ? $attributeValue : '';
-                        }, 'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Covoiturage ? $attributeValue : '';
-                        },
-
-            ],
-           
-   
-        ];
-        $responseData = $this->serializer->serialize($role, 'json', $context);
-
-
+        $responseData = $this->serializer->serialize($role, 'json', Context::context());
         return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
 
     }
@@ -140,124 +99,27 @@ class RoleController extends AbstractController
      */
         public function show(): JsonResponse
         {
-            $role = $this->getUser()->getRole();
-    
-            if ($role) {
-                $context =  [ 
-                    AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-                        if (!$object instanceof User) {
-                            throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
-                        }
-                
-                        // serialize the nested Organization with only the name (and not the members)
-                        return $object->getNom();
-                    },AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-                        if (!$object instanceof Voiture) {
-                            throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
-                        }
-                
-                        // serialize the nested Organization with only the name (and not the members)
-                        return $object->getNom();
-                    },
-                    AbstractNormalizer::CALLBACKS => [
-                        // all callback parameters are optional (you can omit the ones you don't use)
-                        'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Voiture ? $attributeValue : '';
-                        },
-                        'role' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Role ? $attributeValue : '';
-                        }, 'configuration' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Parametre ? $attributeValue : '';
-                        }, 'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Covoiturage ? $attributeValue : '';
-                },'voiture' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Voiture ? $attributeValue : '';
-                },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof User ? $attributeValue : '';
-        }, 
-        
-                    ],
-                   
-           
-                ];
-                $responseData = $this->serializer->serialize($role,  'json',$context);
+            $role = $this->getUser()->getRole(); 
+            if ($role) {         
+                $responseData = $this->serializer->serialize($role,  'json',Context::context());
                 return new jsonResponse($responseData, Response::HTTP_OK, [], true);
-
             }
-            return new jsonResponse($responseData, status: Response::HTTP_NOT_FOUND);
-
-         
+            return new jsonResponse($responseData, Response::HTTP_NOT_FOUND);    
         } 
     
 
-        
-        #[Route('/{id}', name: 'edit', methods: 'PUT')]
-        /** @OA\Put(
-     *     path="/api/role/{id}",
-     *     summary="Modifier un role par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID du role à modifier",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Données du role",
-     *         @OA\JsonContent(
-     *         type="object",
-     *         description="Données du role",
-     *          @OA\Property(property="name", type="string", example="Nom du role"),
-     *          @OA\Property(property="description", type="string", example="Description du role")
-     * )
-     * ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Role trouvé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du role"),
-     *             @OA\Property(property="description", type="string", example="Description du role"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Role non trouvé"
-     *     )
-     * )
-     */
-         public function edit(int $id, Request $request): JsonResponse
-        {
-            $role = $this->repository->findOneBy(['immatriculation' => $id]);
-        
-            if ($role) { 
-                $role = $this->serializer->deserialize(
-                    $request->getContent(),
-                     Role::class,
-                     'json',
-                    [AbstractNormalizer::OBJECT_TO_POPULATE => $role]
-                );  
-                $this->manager->flush();
-                return new jsonResponse(null, Response::HTTP_NO_CONTENT);
-                }
-
-            return new jsonResponse( null, Response::HTTP_NOT_FOUND);
-
-            }
+   
         
 
      
     
-        #[Route('/{id}', name: 'delete', methods: 'DELETE')]       
+        #[Route('/{libelle}', name: 'delete', methods: 'DELETE')]       
      
-        public function delete(string $id): JsonResponse
+        public function delete(string $libelle):JsonResponse
             {
-            $role = $this->repository->findOneBy(['libelle' => $id]);
-            if ($role) {
-                $this->manager->remove($role);
+            $role = $this->repository->findOneBy(['libelle' => $libelle]);
+            if ($role) {            
+                $role->removeUser($this->getUser());
                 $this->manager->flush();
                 return new JsonResponse(null, Response::HTTP_NO_CONTENT);
                 }

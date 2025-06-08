@@ -3,17 +3,11 @@
 namespace App\Controller;
 use OpenApi\Annotations as OA;
 use App\Entity\Operation;
-
 use App\Entity\Credit;
-use App\Entity\Voiture;
-use App\Entity\Marque;
-use App\Entity\User;
-use App\Entity\Configuration;
-use App\Entity\Covoiturage;
-
 use App\Repository\CreditRepository;
-use App\Repository\VoitureRepository;
-use App\Repository\AvisRepository;
+use App\Repository\UserRepository;
+include_once 'Context.php';
+
 
 use Datetime;
 use DateTimeImmutable ;
@@ -30,12 +24,11 @@ use Symfony\Component\Serializer\SerializerInterface;
 class CreditController extends AbstractController
 {
     public function __construct(
+        private UserRepository $userrepository,
         private EntityManagerInterface $manager,
         private CreditRepository $repository,
-        private VoitureRepository $voiturerepository,
         private SerializerInterface $serializer,
         private UrlGeneratorInterface $urlGenerator,
-        private AvisRepository $avisrepository,
 
     ){}
 
@@ -74,192 +67,30 @@ class CreditController extends AbstractController
         $this->getUser()->getCredit()->setTotal($operation->getOperation());
         $this->manager->persist($operation);
         $this->manager->flush();
-
-                 $context = [
-        AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-     
-            if ($object instanceof User) {return $object->getNom();}
-            else if ($object instanceof Configuration) {return $object->getId();}
-            else if ($object instanceof Voiture) {return $object->getId();}
-            else if ($object instanceof Covoiturage) {return $object->getId();}
-            else if ($object instanceof Credit) {return $object->getId();}
-
-            else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
-            },
-                                   
-                AbstractNormalizer::CALLBACKS => [
-                    // all callback parameters are optional (you can omit the ones you don't use)
-                    'voiture' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                        return $attributeValue instanceof Voiture ? $attributeValue : '';
-                    },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                        return $attributeValue instanceof Marque ? $attributeValue : '';
-                    },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof User ? $attributeValue : get_class($attributeValue);
-        },'user' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof User ? $attributeValue : '';
-        },'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                        return $attributeValue instanceof Voiture ? $attributeValue : '';
-                    },
-                'credits' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Credit ? $attributeValue : '';
-                }, 'configuration' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Parametre ? $attributeValue : '';
-
-                }
-
-                ],
-            ];
-                
-        $responseData = $this->serializer->serialize($this->getUser()->getCredit(), 'json',$context );
-
-
+        $responseData = $this->serializer->serialize($this->getUser()->getCredit(), 'json',$Context::context() );
         return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
 
  
 }
-    
-#[Route('/allCredits', name: 'allCredits', methods: 'GET')]
-public function allCredits(): JsonResponse
-{
-    $credits = $this->getUser()->getCredits();
- 
-   
-    $context = [
-        AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-     
-            if ($object instanceof User) {return $object->getNom();}
-            else if ($object instanceof Configuration) {return $object->getId();}
-            else if ($object instanceof Voiture) {return $object->getId();}
-            else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
-            },
-        AbstractNormalizer::CALLBACKS => [
-            // all callback parameters are optional (you can omit the ones you don't use)
-            'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                return $attributeValue instanceof Voiture ? $attributeValue: '';
-            },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                return $attributeValue instanceof Marque ? $attributeValue : '';
-            },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof User ? $attributeValue : '';
-        },  'credits' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof Credit ? $attributeValue : '';
-        },
-        
-        ]
-];
-$responseData = $this->serializer->serialize($credits, 'json',$context);
-return new JsonResponse($responseData, Response::HTTP_OK, [], true);
-}
 
-   
- 
-   
-     #[Route('/Credits/{lieuDepart}/{lieuArrivee}/{dateDepart}', name: 'Credits', methods: 'GET')]
-public function Credits(string $lieuDepart,string $lieuArrivee,string $dateDepart): JsonResponse
-{
-           // $credit = $this->repository->findBy(['lieu_depart' => $lieuDepart,'lieu_arrivee' => $lieuArrivee,'date_depart' => new Datetime($dateDepart), 'statut' => 'en attente', 'nb_places'=> 'nb_places'>0]);
-        $credits= $this->repository->findByPrice($lieuDepart,$lieuArrivee,$dateDepart);
-        $credits1=[];
-        foreach($credits as $credit){
-        $credit1 = $this->repository->findOneBy(['id' => $credit['id']]);
-        $idChauffeur=$credit1->getVoiture()->getUser()->getId();
-        $avis=$this->avisrepository->findBy(['idChauffeur' => $idChauffeur]);   
-        $noteChauffeur=0;
-        foreach($avis as $avi){
-        $noteChauffeur+=$avi->getNote();}
-        $noteChauffeur/=count($avis);
-        $credit1=$credit1->setNoteChauffeur($noteChauffeur);
-        $credits1[]=$credit1;}
-    $context = [
-        AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-     
-            if ($object instanceof User) {return $object->getNom();}
-            else if ($object instanceof Configuration) {return $object->getId();}
-            else if ($object instanceof Voiture) {return $object->getId();}
-            else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
-            },
-        AbstractNormalizer::CALLBACKS => [
-            // all callback parameters are optional (you can omit the ones you don't use)
-            'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                return $attributeValue instanceof Voiture ? $attributeValue: '';
-            },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                return $attributeValue instanceof Marque ? $attributeValue : '';
-            },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof User ? $attributeValue : '';
-        },  'credits' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof Credit ? $attributeValue : '';
-        },
-        
-        ]
-];
 
-            if ($credits1) {
-                $responseData = $this->serializer->serialize($credits1,  'json',$context);
-                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
-
-            }
-            return new jsonResponse(null, status: Response::HTTP_NOT_FOUND);
-
-} 
-     #[Route('/CreditsSansDate/{lieuDepart}/{lieuArrivee}', name: 'CreditsSansDate', methods: 'GET')]
-public function CreditsSansDate(string $lieuDepart,string $lieuArrivee): JsonResponse
-{
-        $credits= $this->repository->findByPlace($lieuDepart,$lieuArrivee);
-        $credits1=[];
-        foreach($credits as $credit){
-        $credit1 = $this->repository->findOneBy(['id' => $credit['id']]);
-        $idChauffeur=$credit1->getVoiture()->getUser()->getId();
-        $avis=$this->avisrepository->findBy(['idChauffeur' => $idChauffeur]);   
-        $noteChauffeur=0;
-        foreach($avis as $avi){
-        $noteChauffeur+=$avi->getNote();}
-        $noteChauffeur/=count($avis);
-        $credit1=$credit1->setNoteChauffeur($noteChauffeur);
-        $credits1[]=$credit1;}
-    $context = [
-        AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-     
-            if ($object instanceof User) {return $object->getNom();}
-            else if ($object instanceof Configuration) {return $object->getId();}
-            else if ($object instanceof Voiture) {return $object->getId();}
-            else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
-            },
-        AbstractNormalizer::CALLBACKS => [
-            // all callback parameters are optional (you can omit the ones you don't use)
-            'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                return $attributeValue instanceof Voiture ? $attributeValue: '';
-            },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                return $attributeValue instanceof Marque ? $attributeValue : '';
-            },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof User ? $attributeValue : '';
-        },  'credits' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-            return $attributeValue instanceof Credit ? $attributeValue : '';
-        },
-        
-        ]
-];
-
-            if ($credits1) {
-                $responseData = $this->serializer->serialize($credits1,  'json',$context);
-                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
-
-            }
-            return new jsonResponse(null, status: Response::HTTP_NOT_FOUND);
-
-} 
-        #[Route('/c/{id}', name: 'show', methods: 'GET')]
-        /** @OA\Get(
-     *     path="/api/credit/{id}",
-     *     summary="Afficher un credit par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
+   #[Route('/payerChauffeur/{id}', name: 'payerChauffeur', methods: 'POST')]  
+    /** @OA\Post(
+     *     path="/api/credit",
+     *     summary="Créer un credit",
+     *     @OA\RequestBody(
      *         required=true,
-     *         description="ID du credit à afficher",
-     *         @OA\Schema(type="integer")
-     *     ),
+     *         description="Données du credit",
+     *         @OA\JsonContent(
+     *         type="object",
+     *         description="Données du credit",
+     *          @OA\Property(property="name", type="string", example="Nom du credit"),
+     *          @OA\Property(property="description", type="string", example="Description du credit")
+     * )
+     * ),
      *     @OA\Response(
-     *         response=200,
-     *         description="Credit trouvé avec succès",
+     *         response=201,
+     *         description="Credit créé avec succès",
      *         @OA\JsonContent(
      *             type="object",
      *             @OA\Property(property="id", type="integer", example=1),
@@ -267,223 +98,61 @@ public function CreditsSansDate(string $lieuDepart,string $lieuArrivee): JsonRes
      *             @OA\Property(property="description", type="string", example="Description du credit"),
      *             @OA\Property(property="createdAt", type="string", format="date-time")
      *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Credit non trouvé"
      *     )
      * )
      */
-        public function show(int $id): JsonResponse
-        {
-            $credit = $this->repository->findOneBy(['id' => $id]);
-            $idChauffeur=$credit->getVoiture()->getUser()->getId();
-            $avis=$this->avisrepository->findBy(['idChauffeur' => $idChauffeur]);   
-            if ($avis){$noteChauffeur=0;
-            foreach($avis as $avi){
-            $noteChauffeur+=$avi->getNote();}
-            $noteChauffeur/=count($avis);
-            $credit=$credit->setNoteChauffeur($noteChauffeur);}
+    public function payerChauffeur(Request $request, int $id): JsonResponse
+    {       
+        $chauffeur=$this->userrepository->findOneBy(['id' => $id]);   
+    if ($chauffeur) { 
+        $operation = $this->serializer->deserialize($request->getContent(),Operation::class, 'json');
+        $chauffeur->addOperation($operation);
+        $chauffeur->getCredit()->setTotal($operation->getOperation());
+        $this->manager->persist($operation);
+        $this->manager->flush();
+        $responseData = $this->serializer->serialize($chauffeur->getCredit(),  'json',Context::context());
+        return new jsonResponse($responseData, Response::HTTP_OK, [], true);
+            }
+            return new jsonResponse(null, Response::HTTP_NOT_FOUND);
+        }
+      
+        #[Route('/payer/{id1}/{id2}', name: 'payer', methods: 'POST')]  
+
+         public function payer(Request $request, int $id1,int $id2): JsonResponse
+    {       
+        $personne1=$this->userrepository->findOneBy(['id' => $id1]);
+        $personne2=$this->userrepository->findOneBy(['id' =>$id2 ]);
+    if ($personne1 && $personne2 ) { 
+        $operation1 = $this->serializer->deserialize($request->getContent(),Operation::class, 'json');
        
-            $context = [
-                AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-             
-                    if ($object instanceof User) {return $object->getNom();}
-                    else if ($object instanceof Configuration) {return $object->getId();}
-                    else if ($object instanceof Voiture) {return $object->getId();}
-                    else{throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');}
-                    },
-                AbstractNormalizer::CALLBACKS => [
-                    // all callback parameters are optional (you can omit the ones you don't use)
-                    'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                        return $attributeValue instanceof Voiture ? $attributeValue: '';
-                    },'marque' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                        return $attributeValue instanceof Marque ? $attributeValue : '';
-                    },'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof User ? $attributeValue : '';
-                },  'credits' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Credit ? $attributeValue : '';
-                },
-                
-                ]
-];
+        $operation2=$this->serializer->deserialize($request->getContent(),Operation::class, 'json');
+        if ($id1==9){$operation2->setOperation(-$operation2->getOperation() +2);}
+        else{$operation2->setOperation(-$operation2->getOperation());}
+        $personne1->addOperation($operation2);
+        $personne1->getCredit()->setTotal($operation2->getOperation());
+        $personne2->addOperation($operation1);
+        $personne2->getCredit()->setTotal($operation1->getOperation());
+        $this->manager->persist($operation1);
+        $this->manager->persist($operation2);
+        $this->manager->flush();
+        $reponse = $this->serializer->serialize($operation2, 'json',Context::context());
 
-            if ($credit) {
-                $responseData = $this->serializer->serialize($credit,  'json',$context);
-                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
+        return new jsonResponse($reponse, Response::HTTP_OK, [], true);
+            } 
 
-            }
-            return new jsonResponse(null, status: Response::HTTP_NOT_FOUND);
-
-         
-        } 
-    
-
-        
-        #[Route('/{id}', name: 'edit', methods: 'PUT')]
-        /** @OA\Put(
-     *     path="/api/credit/{id}",
-     *     summary="Modifier un credit par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID du credit à modifier",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Données du credit",
-     *         @OA\JsonContent(
-     *         type="object",
-     *         description="Données du credit",
-     *          @OA\Property(property="name", type="string", example="Nom du credit"),
-     *          @OA\Property(property="description", type="string", example="Description du credit")
-     * )
-     * ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Credit trouvé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du credit"),
-     *             @OA\Property(property="description", type="string", example="Description du credit"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Credit non trouvé"
-     *     )
-     * )
-     */
-         public function edit(int $id, Request $request): JsonResponse
-        {   
-            $data = json_decode($request->getContent(), true); 
-            $credit = $this->repository->findOneBy(['id' => $id]);
-            if ($credit) { 
-            $credit->setStatut($data['statut']);  
-            /*if ($credit) { 
-                $credit = $this->serializer->deserialize(
-                    $request->getContent(),
-                     Credit::class,
-                     'json',
-                    [AbstractNormalizer::OBJECT_TO_POPULATE => $credit]
-                );*/  
-                $this->manager->flush();
-                return new jsonResponse(null, Response::HTTP_NO_CONTENT);
-                }
-
-            return new jsonResponse( null, Response::HTTP_NOT_FOUND);
-
-            }
-        
-   
-        #[Route('/reponses/{id}', name: 'editReponses', methods: 'PUT')]
-        /** @OA\Put(
-     *     path="/api/credit/{id}",
-     *     summary="Modifier un credit par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID du credit à modifier",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Données du credit",
-     *         @OA\JsonContent(
-     *         type="object",
-     *         description="Données du credit",
-     *          @OA\Property(property="name", type="string", example="Nom du credit"),
-     *          @OA\Property(property="description", type="string", example="Description du credit")
-     * )
-     * ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Credit trouvé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du credit"),
-     *             @OA\Property(property="description", type="string", example="Description du credit"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Credit non trouvé"
-     *     )
-     * )
-     */
-         public function editReponses(int $id, Request $request): JsonResponse
-        {   
-            $data = json_decode($request->getContent(), true); 
-            $credit = $this->repository->findOneBy(['id' => $id]);
-            if ($credit) {
-                if(array_key_exists('reponse',$data)){$credit->setReponse($this->getUser()->getId(),$data['reponse']);}          
-                else{$credit->setReponse1($this->getUser()->getId(),$data['reponse1']);}           
-            $this->manager->flush();
-
-            return new jsonResponse(null, Response::HTTP_NO_CONTENT);
-                }
-
-            return new jsonResponse( null, Response::HTTP_NOT_FOUND);
-
-            }
-     
-    
-        #[Route('/{id}', name: 'delete', methods: 'DELETE')]       
-     
-        public function delete(int $id): JsonResponse
-            {
-            $credit = $this->repository->findOneBy(['id' => $id]);
-            if ($credit) {
-                $this->manager->remove($credit);
-                $this->manager->flush();
-                return new JsonResponse(null, Response::HTTP_NO_CONTENT);
-                }
-            
-            return new JsonResponse(null, Response::HTTP_NOT_FOUND);
-
-            
-                }
-
-
-    #[Route('/prixMaximumEtMinimum/{lieuDepart}/{lieuArrivee}/{dateDepart}', name: 'prixMaximum', methods: 'GET')]
-public function prixMaximumEtMinimum(string $lieuDepart,string $lieuArrivee,string $dateDepart): JsonResponse
-{
-        $prixEtDureeMaximumEtMinimum= $this->repository->findMaximumPrice($lieuDepart,$lieuArrivee,$dateDepart);
-        $prixEtDureeMaximumEtMinimum[1]= $this->repository->findMinimumPrice($lieuDepart,$lieuArrivee,$dateDepart)[0];
-        $prixEtDureeMaximumEtMinimum[2]=$this->repository->findDureeMaximum($lieuDepart,$lieuArrivee,$dateDepart)[0]; 
-        $prixEtDureeMaximumEtMinimum[3]=$this->repository->findDureeMinimum($lieuDepart,$lieuArrivee,$dateDepart)[0]; 
-
-
-  
-            if ($prixEtDureeMaximumEtMinimum) {
-                $responseData = $this->serializer->serialize($prixEtDureeMaximumEtMinimum,  'json');
-                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
-
-            }
-            return new jsonResponse(null, status: Response::HTTP_NOT_FOUND);
+            return new jsonResponse(1, Response::HTTP_NOT_FOUND);
         }
+ 
+      #[Route('/nombreCreditsTotal', name: 'nombreCreditsTotal', methods: 'GET')]  
     
-        #[Route('/nombreDeparts', name: 'nombreDeparts', methods: 'GET')]
-public function nombreDeparts(): JsonResponse
-{
-        $nombreDeparts= $this->repository->findByDay();
-
-
-  
-            if ($nombreDeparts) {
-                $responseData = $this->serializer->serialize($nombreDeparts,  'json');
-                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
-
+public function nombreCreditsTotal(Request $request): JsonResponse
+    {       
+        $credits=$this->getUser()->getCredit()->getTotal();   
+    if ($credits) { 
+        $responseData = $this->serializer->serialize($credits,  'json',Context::context());
+        return new jsonResponse($responseData, Response::HTTP_OK, [], true);
             }
-            return new jsonResponse(null, status: Response::HTTP_NOT_FOUND);
+            return new jsonResponse(null, Response::HTTP_NOT_FOUND);
         }
-    
-    
- }
+ 
+    }

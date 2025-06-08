@@ -62,22 +62,25 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     #[ORM\ManyToMany(targetEntity: Covoiturage::class, inversedBy: 'users')]
     private Collection $covoiturages;
-    #[MaxDepth(1)]
-    #[ORM\OneToMany(targetEntity: Configuration::class, mappedBy: 'user', orphanRemoval: true, fetch:'EAGER')]
-    private Collection $configurations;
-
+   
     #[ORM\Column(length: 255)]
     private ?string $apiToken = null;
 
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $photoMime = null;
 
-    #[ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'])]
+    #[ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'],fetch:'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Credit $credit = null;
 
     #[ORM\OneToMany(targetEntity: Operation::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $operation;
+
+    #[ORM\OneToMany(targetEntity: Parametre::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $parametres;
+
+    #[ORM\OneToMany(targetEntity: Reponse::class, mappedBy: 'user', orphanRemoval: true)]
+    private Collection $reponses;
 
 
 
@@ -88,9 +91,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         $this->avis = new ArrayCollection();
         $this->voitures = new ArrayCollection();
         $this->covoiturages = new ArrayCollection();
-        $this->configurations = new ArrayCollection();
         $this->apiToken=bin2hex(random_bytes(20));
         $this->operation = new ArrayCollection();
+        $this->parametres = new ArrayCollection();
+        $this->reponses = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -380,35 +384,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    /**
-     * @return Collection<int, Configuration>
-     */
-    public function getConfigurations(): Collection
-    {
-        return $this->configurations;
-    }
 
-    public function addConfiguration(Configuration $configuration): static
-    {
-        if (!$this->configurations->contains($configuration)) {
-            $this->configurations->add($configuration);
-            $configuration->setUser($this);
-        }
 
-        return $this;
-    }
 
-    public function removeConfiguration(Configuration $configuration): static
-    {
-        if ($this->configurations->removeElement($configuration)) {
-            // set the owning side to null (unless already changed)
-            if ($configuration->getUser() === $this) {
-                $configuration->setUser(null);
-            }
-        }
-
-        return $this;
-    }
+  
 
     public function getApiToken(): ?string
     {
@@ -470,6 +449,66 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
             // set the owning side to null (unless already changed)
             if ($operation->getUser() === $this) {
                 $operation->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Parametre>
+     */
+    public function getParametres(): Collection
+    {
+        return $this->parametres;
+    }
+
+    public function addParametre(Parametre $parametre): static
+    {
+        if (!$this->parametres->contains($parametre)) {
+            $this->parametres->add($parametre);
+            $parametre->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeParametre(Parametre $parametre): static
+    {
+        if ($this->parametres->removeElement($parametre)) {
+            // set the owning side to null (unless already changed)
+            if ($parametre->getUser() === $this) {
+                $parametre->setUser(null);
+            }
+        }
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Reponse>
+     */
+    public function getReponses(): Collection
+    {
+        return $this->reponses;
+    }
+
+    public function addReponse(Reponse $reponse): static
+    {
+        if (!$this->reponses->contains($reponse)) {
+            $this->reponses->add($reponse);
+            $reponse->setUser($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReponse(Reponse $reponse): static
+    {
+        if ($this->reponses->removeElement($reponse)) {
+            // set the owning side to null (unless already changed)
+            if ($reponse->getUser() === $this) {
+                $reponse->setUser(null);
             }
         }
 

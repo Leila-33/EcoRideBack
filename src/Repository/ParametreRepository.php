@@ -21,6 +21,23 @@ class ParametreRepository extends ServiceEntityRepository
         parent::__construct($registry, Parametre::class);
     }
 
+     public function findByUser(int $id): array{
+        $conn=$this->getEntityManager()->getConnection();
+        $sql='SELECT * FROM parametre p WHERE (p.user_id = :val)';        
+        $resultSet=$conn->executeQuery($sql,['val'=>$id]);
+        return $resultSet->fetchAllAssociative();
+        }
+           public function findByUserAndProperty(int $id, string $property): array{
+        $conn=$this->getEntityManager()->getConnection();
+        $sql='SELECT * FROM parametre p WHERE (p.user_id = :val)  AND (p.propriete= :val1)';        
+        $resultSet=$conn->executeQuery($sql,['val'=>$id, 'val1'=> $property]);
+        return $resultSet->fetchAllAssociative();
+        }
+
+
+
+    }  
+        
 //    /**
 //     * @return Parametre[] Returns an array of Parametre objects
 //     */
@@ -45,4 +62,4 @@ class ParametreRepository extends ServiceEntityRepository
 //            ->getOneOrNullResult()
 //        ;
 //    }
-}
+

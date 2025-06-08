@@ -47,21 +47,26 @@ class Covoiturage
     #[ORM\JoinColumn(nullable: false)]
     private ?Voiture $voiture = null;
 
-    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'covoiturages')]
+    #[ORM\ManyToMany(targetEntity: User::class, mappedBy: 'covoiturages', fetch:'EAGER')]
     private Collection $users;
 
-    #[ORM\Column(type: Types::ARRAY, nullable: true)]
-    private ?array $reponses = null;
 
-    #[ORM\Column(type: Types::ARRAY, nullable: true)]
-    private ?array $reponses1 = null;
 
     #[ORM\Column(nullable: true)]
     private ?float $noteChauffeur = null;
 
+    #[ORM\Column]
+    private ?int $idChauffeur = null;
+
+    #[ORM\OneToMany(targetEntity: Reponse::class, mappedBy: 'covoiturage', orphanRemoval: true, cascade: ['persist', 'remove'])]
+    #[ORM\JoinColumn(nullable: true)]
+    private Collection $reponses;
+
+
     public function __construct()
     {
         $this->users = new ArrayCollection();
+        $this->reponses = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -216,29 +221,8 @@ class Covoiturage
         return $this;
     }
 
-    public function getReponses(): ?array
-    {
-        return $this->reponses;
-    }
 
-    public function setReponse(int $id,string $reponse): static
-    {
-        $this->reponses[$id] = $reponse;
-
-        return $this;
-    }
-
-    public function getReponses1(): ?array
-    {
-        return $this->reponses1;
-    }
-
-    public function setReponse1(int $id,string $reponse1): static
-    {
-        $this->reponses1[$id] = $reponse1;
-
-        return $this;
-    }
+  
 
     public function getNoteChauffeur(): ?float
     {
@@ -251,4 +235,48 @@ class Covoiturage
 
         return $this;
     }
+
+    public function getIdChauffeur(): ?int
+    {
+        return $this->idChauffeur;
+    }
+
+    public function setIdChauffeur(int $idChauffeur): static
+    {
+        $this->idChauffeur = $idChauffeur;
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Reponse>
+     */
+    public function getReponses(): Collection
+    {
+        return $this->reponses;
+    }
+
+    public function addReponse(Reponse $reponse): static
+    {
+        if (!$this->reponses->contains($reponse)) {
+            $this->reponses->add($reponse);
+            $reponse->setCovoiturage($this);
+        }
+
+        return $this;
+    }
+
+    public function removeReponse(Reponse $reponse): static
+    {
+        if ($this->reponses->removeElement($reponse)) {
+            // set the owning side to null (unless already changed)
+            if ($reponse->getCovoiturage() === $this) {
+                $reponse->setCovoiturage(null);
+            }
+        }
+
+        return $this;
+    }
+
+
 }

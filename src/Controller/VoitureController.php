@@ -2,9 +2,11 @@
 
 namespace App\Controller;
 use OpenApi\Annotations as OA;
+include_once 'Context.php';
 
 use App\Entity\Voiture;
 use App\Repository\VoitureRepository;
+use App\Repository\MarqueRepository;
 
 use DateTimeImmutable ;
 use Doctrine\ORM\EntityManagerInterface;
@@ -23,7 +25,8 @@ class VoitureController extends AbstractController
         private EntityManagerInterface $manager,
         private VoitureRepository $repository,
         private SerializerInterface $serializer,
-        private UrlGeneratorInterface $urlGenerator
+        private UrlGeneratorInterface $urlGenerator,
+        private MarqueRepository $marquerepository
     ){}
 
 
@@ -72,10 +75,9 @@ class VoitureController extends AbstractController
 
  
 }
-    
 
     
-        #[Route('/{id}', name: 'show', methods: 'GET')]
+        //#[Route('/{id}', name: 'show', methods: 'GET')]
         /** @OA\Get(
      *     path="/api/voiture/{id}",
      *     summary="Afficher un voiture par ID",
@@ -103,9 +105,9 @@ class VoitureController extends AbstractController
      *     )
      * )
      */
-        public function show(int $id): JsonResponse
+    /*    public function show(int $id): JsonResponse
         {
-            $voiture = $this->repository->findOneBy(['immatriculation' => $id]);
+            $voiture = $this->repository->findOneBy(['id' => $id]);
     
             if ($voiture) {
                 $responseData = $this->serializer->serialize($voiture,  'json');
@@ -115,7 +117,7 @@ class VoitureController extends AbstractController
             return new jsonResponse($responseData, status: Response::HTTP_NOT_FOUND);
 
          
-        } 
+        } */
     
 
         
@@ -159,13 +161,10 @@ class VoitureController extends AbstractController
      */
          public function edit(int $id, Request $request): JsonResponse
         {
-            $voiture = $this->repository->findOneBy(['immatriculation' => $id]);
-        
+            $voiture = $this->repository->findOneBy(['id' => $id]);    
             if ($voiture) { 
                 $voiture = $this->serializer->deserialize(
-                    $request->getContent(),
-                     Voiture::class,
-                     'json',
+                    $request->getContent(), Voiture::class,'json',
                     [AbstractNormalizer::OBJECT_TO_POPULATE => $voiture]
                 );  
                 $this->manager->flush();
@@ -194,5 +193,36 @@ class VoitureController extends AbstractController
 
             
                 }
+
+    #[Route('/addVoiture', name: 'addVoiture', methods: 'POST')]
+        public function addVoiture(Request $request): JsonResponse
+        {
+            $voiture = $this->serializer->deserialize($request->getContent(), Voiture::class, 'json');
+    
+            $voiture1 = $this->repository->findOneBy(['immatriculation' => $voiture->getImmatriculation()]);
+            if (!$voiture1){
+            $libelle=$voiture->getMarque()->getLibelle();
+            $marque = $this->marquerepository->findOneBy(['libelle' => $libelle]);
+            if ($marque) {$marque->addVoiture($voiture);}
+            else{$voiture->getMarque()->addVoiture($voiture);
+                $this->manager->persist($voiture->getMarque());}
+            $this->getUser()->addVoiture($voiture);
+            $this->manager->persist($voiture);
+            $this->manager->flush();
+            $responseData = $this->serializer->serialize($voiture,'json', Context::context());      
+            return new JsonResponse($responseData, Response::HTTP_CREATED, [] ,true);    }
+            $responseData = $this->serializer->serialize($voiture1,'json', Context::context());      
+            return new JsonResponse($responseData, Response::HTTP_OK, [], true);
+  
 }
+
+#[Route('/allVoitures', name: 'allVoitures', methods: 'GET')]
+public function allVoitures(): JsonResponse
+{
+    $voitures = $this->getUser()->getVoitures();
+
+$responseData = $this->serializer->serialize($voitures, 'json',Context::context());
+return new JsonResponse($responseData, Response::HTTP_OK, [], true);
+}}
+
    

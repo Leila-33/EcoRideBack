@@ -36,7 +36,7 @@ class Voiture
     #[ORM\OneToMany(targetEntity: Covoiturage::class, mappedBy: 'voiture', orphanRemoval: true)]
     private Collection $covoiturages;
     
-    #[ORM\ManyToOne(inversedBy: 'voitures', fetch:'EAGER')]
+    #[ORM\ManyToOne(inversedBy: 'voitures', fetch:"EAGER")]
     #[ORM\JoinColumn(nullable: false)]
     private ?Marque $marque = null;
 

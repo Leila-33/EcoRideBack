@@ -2,7 +2,8 @@
 
 namespace App\Controller;
 use OpenApi\Annotations as OA;
-use App\Entity\Voiture;
+
+include_once 'Context.php';
 
 use App\Entity\Parametre;
 use App\Repository\ParametreRepository;
@@ -60,49 +61,19 @@ class ParametreController extends AbstractController
     public function new(Request $request): JsonResponse
     {
         $parametre = $this->serializer->deserialize($request->getContent(), Parametre::class, 'json');
-        $parametreFound = $this->repository->findOneBy(['propriete' => $parametre->getPropriete()]);
-          if  ($parametreFound && $parametreFound->getConfiguration()->getUser()->getId()==$this->getUser()->getId()){
-            if ($parametre->getValeur()==$parametreFound->getValeur()){
-                $parametre=$parametreFound;}
-            else {$parametreFound->setValeur($parametre->getValeur());
-                $parametre=$parametreFound;
+        $parametreFound = $this->repository->findByUserAndProperty( $this->getUser()->getId(),$parametre->getPropriete())[0];
+        $parametreFound=$this->repository->findOneBy(['id' => $parametreFound['id']]);
+          if  ($parametreFound ){
+            if ($parametre->getValeur()!=$parametreFound->getValeur()){
+                $parametreFound->setValeur($parametre->getValeur());
                 $this->manager->flush();
-            }}
-        else{$this->getUser()->getConfigurations()[0]->addParametre($parametre);
-                $parametre->setConfiguration($this->getUser()->getConfigurations()[0]);
-                $this->manager->persist($parametre);
+            }
+             $parametre=$parametreFound;}
+        else{$this->getUser()->addParametre($parametre);
+            $this->manager->persist($parametre);
             $this->manager->flush();}
-            $context = [
-                AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-                    if (!$object instanceof User) {
-                        throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
-                    }
-            
-                    // serialize the nested Organization with only the name (and not the members)
-                    return $object->getNom();
-                }, AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-                    if (!$object instanceof Voiture) {
-                        throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
-                    }
-                return $object->getId();
-                  },
-            AbstractNormalizer::CALLBACKS => [
-                
-                // all callback parameters are optional (you can omit the ones you don't use)
-                'parametres' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Parametre ? $attributeValue : '';
-                },  'users' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Parametre ? $attributeValue : '';
-                }, 'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Voiture ? $attributeValue : '';
-                },'configurations' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Configuration ? $attributeValue : '';
-                }, 'covoiturages' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                    return $attributeValue instanceof Covoiturage ? $attributeValue : '';
-                },
-
-        ], ];
-        $responseData = $this->serializer->serialize($parametre, 'json', $context );
+        
+        $responseData = $this->serializer->serialize($parametreFound, 'json',Context::context() );
     
 
         return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
@@ -112,134 +83,21 @@ class ParametreController extends AbstractController
     
 
     
-        #[Route( name: 'show', methods: 'GET')]
-        /** @OA\Get(
-     *     path="/api/parametre/{id}",
-     *     summary="Afficher un parametre par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID du parametre à afficher",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\Response(
-     *         response=200,
-     *         description="Parametre trouvé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du parametre"),
-     *             @OA\Property(property="description", type="string", example="Description du parametre"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Parametre non trouvé"
-     *     )
-     * )
-     */
+        #[Route( name: 'show', methods: 'GET')]       
+     
         public function show(): JsonResponse
-        {   $parametres = $this->getUser()->getConfigurations()[0]->getParametres();
-    
-            if ($parametres) {
-                $context = [
-                    AbstractNormalizer::CIRCULAR_REFERENCE_HANDLER => function (object $object, ?string $format, array $context): string {
-                        if (!$object instanceof User) {
-                            throw new CircularReferenceException('A circular reference has been detected when serializing the object of class "'.get_debug_type($object).'".');
-                        }
-                
-                        // serialize the nested Organization with only the name (and not the members)
-                        return $object->getNom();
-                    },
-                    AbstractNormalizer::CALLBACKS => [
-                        // all callback parameters are optional (you can omit the ones you don't use)
-                        'voitures' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Voiture ? $attributeValue : '';
-                        },
-                        'role' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Role ? $attributeValue : '';
-                        }, 'configuration' => function (object $attributeValue, object $object, string $attributeName, ?string $format = null, array $context = []) {
-                            return $attributeValue instanceof Parametre ? $attributeValue : '';
-                        },
-        
-                    ],
-                   
-           
-                ];
-                $responseData = $this->serializer->serialize($parametres,  'json',$context);
-                return new jsonResponse($responseData, Response::HTTP_OK, [], true);
+            {
+            $parametre = $this->repository->findByUser($this->getUser()->getId());
+            if ($parametre) {
+            $responseData = $this->serializer->serialize($parametre, 'json',Context::context() );
+            return new jsonResponse($responseData, Response::HTTP_OK, [], true);
 
             }
-            return new jsonResponse($responseData, status: Response::HTTP_NOT_FOUND);
+            return new jsonResponse(null, Response::HTTP_NOT_FOUND);
 
-         
-        } 
-    
-         
-    
-
-        
-        #[Route('/{id}', name: 'edit', methods: 'PUT')]
-        /** @OA\Put(
-     *     path="/api/parametre/{id}",
-     *     summary="Modifier un parametre par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID du parametre à modifier",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Données du parametre",
-     *         @OA\JsonContent(
-     *         type="object",
-     *         description="Données du parametre",
-     *          @OA\Property(property="name", type="string", example="Nom du parametre"),
-     *          @OA\Property(property="description", type="string", example="Description du parametre")
-     * )
-     * ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Parametre trouvé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du parametre"),
-     *             @OA\Property(property="description", type="string", example="Description du parametre"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Parametre non trouvé"
-     *     )
-     * )
-     */
-         public function edit(int $id, Request $request): JsonResponse
-        {
-            $parametre = $this->repository->findOneBy(['immatriculation' => $id]);
-        
-            if ($parametre) { 
-                $parametre = $this->serializer->deserialize(
-                    $request->getContent(),
-                     Parametre::class,
-                     'json',
-                    [AbstractNormalizer::OBJECT_TO_POPULATE => $parametre]
-                );  
-                $this->manager->flush();
-                return new jsonResponse(null, Response::HTTP_NO_CONTENT);
+            
                 }
 
-            return new jsonResponse( null, Response::HTTP_NOT_FOUND);
-
-            }
-        
-
-     
     
         #[Route('/{id}', name: 'delete', methods: 'DELETE')]       
      

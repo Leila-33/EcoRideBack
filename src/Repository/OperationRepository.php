@@ -20,7 +20,12 @@ class OperationRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Operation::class);
     }
-
+  public function findByDay(): array{
+        $conn=$this->getEntityManager()->getConnection();
+        $sql='SELECT o.date_operation,SUM(o.operation) FROM operation o GROUP BY o.date_operation ASC';        
+        $resultSet=$conn->executeQuery($sql);
+        return $resultSet->fetchAllAssociative();
+        }
 //    /**
 //     * @return Operation[] Returns an array of Operation objects
 //     */

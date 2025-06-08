@@ -66,7 +66,7 @@ class CovoiturageRepository extends ServiceEntityRepository
         return $resultSet->fetchAllAssociative();
         }*/
         
-        public function findByPrice(string $lieuDepart,string $lieuArrivee,string $dateDepart): array{
+        public function findByDate(string $lieuDepart,string $lieuArrivee,string $dateDepart): array{
         $conn=$this->getEntityManager()->getConnection();
         $sql='SELECT * FROM covoiturage c WHERE (c.statut= :val6) AND (c.lieu_depart= :val) 
         AND (c.lieu_arrivee=:val1) AND (c.date_depart=:val2) AND (c.nb_place > :val3) ORDER BY c.heure_depart ASC';        
