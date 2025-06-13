@@ -33,7 +33,6 @@ class Credit
 
     public function setUser(User $user): static
     {
-        // set the owning side of the relation if necessary
         if ($user->getCredit() !== $this) {
             $user->setCredit($this);
         }

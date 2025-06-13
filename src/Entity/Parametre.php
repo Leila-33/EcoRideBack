@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ParametreRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ParametreRepository::class)]
 class Parametre
@@ -14,9 +15,11 @@ class Parametre
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $propriete = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $valeur = null;
 
   

@@ -4,6 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ReponseRepository;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ReponseRepository::class)]
 class Reponse
@@ -12,14 +13,17 @@ class Reponse
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-
+    #[Assert\NotBlank]
+    #[Assert\Choice(['oui','non'])]
     #[ORM\Column(length: 255)]
     private ?string $reponse1 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\IdenticalTo('oui')]
     private ?string $reponse2 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\NotBlank]
     private ?string $commentaire = null;
 
     #[ORM\ManyToOne(inversedBy: 'reponses', fetch:'EAGER')]

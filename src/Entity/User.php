@@ -9,7 +9,7 @@ use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-
+use Symfony\Component\validator\Constraints as Assert;
 #[ORM\Entity(repositoryClass: UserRepository::class)]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
@@ -17,8 +17,12 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-
+   
     #[ORM\Column(length: 180, unique: true)]
+    #[Assert\NotBlank]
+    #[Assert\Email(
+        message: "L'email {{ value }} n'est pas une adresse email valide."
+    )]
     private ?string $email = null;
 
     #[ORM\Column]
@@ -28,27 +32,43 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Regex(
+        pattern: '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/',
+        message: "Le mot de passe n'est pas assez robuste : au moins 8 caractères, comprenant au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial"
+)]
     private ?string $password = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $nom = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Regex(
+        pattern:'/^[0-9]{10}$/',
+         message:"Le telephone n'est pas au bon format."
+)]
     private ?string $telephone = null;
 
     #[ORM\Column(length: 50, nullable: true)]
     private ?string $adresse = null;
 
     #[ORM\Column(length: 50, nullable: true)]
+    #[Assert\Regex(
+        pattern:'/^[0-9]{2}[/][0-9]{2}[/][0-9]{4}$/',
+         message:"La date de naissance n'est pas au bon format."
+)]
     private ?string $date_naissance = null;
 
     #[ORM\Column(type: Types::BLOB, nullable: true)]
     private $photo = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $pseudo = null;
 
     #[ORM\ManyToMany(targetEntity: Role::class, inversedBy: 'users')]

@@ -15,9 +15,15 @@ class Operation
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank]
+    #[Assert\Date]
     private ?\DateTimeInterface $date_operation = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Type(
+        type:'integer',
+        message: "La valeur n'est pas un nombre.")]
     private ?int $operation = null;
 
     #[ORM\ManyToOne(inversedBy: 'operation')]

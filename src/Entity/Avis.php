@@ -19,9 +19,12 @@ class Avis
     private ?string $commentaire = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     private ?string $note = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\Choice(['en attente','validé'])]
     private ?string $statut = null;
 
     #[ORM\ManyToOne(inversedBy: 'avis')]
@@ -29,6 +32,8 @@ class Avis
     private ?user $user = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     private ?int $idChauffeur = null;
 
   

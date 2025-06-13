@@ -16,6 +16,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 
 use Symfony\Component\Serializer\SerializerInterface;
@@ -58,12 +59,18 @@ class ParametreController extends AbstractController
      *     )
      * )
      */
-    public function new(Request $request): JsonResponse
+    public function new(Request $request, ValidatorInterface $validator): JsonResponse
     {
         $parametre = $this->serializer->deserialize($request->getContent(), Parametre::class, 'json');
-        $parametreFound = $this->repository->findByUserAndProperty( $this->getUser()->getId(),$parametre->getPropriete())[0];
-        $parametreFound=$this->repository->findOneBy(['id' => $parametreFound['id']]);
-          if  ($parametreFound ){
+         $errors = $validator->validate($parametre);
+        if (count($errors) > 0) {
+        $errorsString = (string) $errors;
+        return new Response($errorsString); }
+        $parametre->setPropriete(strip_tags($parametre->getPropriete()));
+        $parametre->setValeur(strip_tags($parametre->getValeur()));
+        $parametreFound = $this->repository->findOneBy(['user' => $this->getUser(), 'propriete' =>$parametre->getPropriete()]);
+  
+       if  ($parametreFound ){
             if ($parametre->getValeur()!=$parametreFound->getValeur()){
                 $parametreFound->setValeur($parametre->getValeur());
                 $this->manager->flush();
@@ -73,7 +80,7 @@ class ParametreController extends AbstractController
             $this->manager->persist($parametre);
             $this->manager->flush();}
         
-        $responseData = $this->serializer->serialize($parametreFound, 'json',Context::context() );
+        $responseData = $this->serializer->serialize($parametre, 'json',Context::context() );
     
 
         return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);

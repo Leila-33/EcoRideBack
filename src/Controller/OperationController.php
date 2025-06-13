@@ -18,6 +18,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/operation', name: 'app_api_operation_')]
 class OperationController extends AbstractController
@@ -59,11 +60,15 @@ class OperationController extends AbstractController
      *     )
      * )
      */
-    public function new(Request $request): JsonResponse
+    public function new(Request $request, ValidatorInterface $validator): JsonResponse
     {
         $operation = $this->serializer->deserialize($request->getContent(),Operation::class, 'json');
+        $errors = $validator->validate($operation);
+        if (count($errors) > 0) {
+        $errorsString = (string) $errors;
+        return new Response($errorsString);}
         $this->getUser()->addOperation($operation);
-        $this->getUser()->getOperation()->setTotal($operation->getOperation());
+        $this->getUser()->getCredit()->setTotal($operation->getOperation());
         $this->manager->persist($operation);
         $this->manager->flush();
         $responseData = $this->serializer->serialize($this->getUser()->getOperation(), 'json',$Context::context() );

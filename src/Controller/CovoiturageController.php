@@ -21,6 +21,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/covoiturage', name: 'app_api_covoiturage_')]
 class CovoiturageController extends AbstractController
@@ -63,34 +64,37 @@ class CovoiturageController extends AbstractController
      *     )
      * )
      */
-    public function new(Request $request): JsonResponse
+    public function new(Request $request, ValidatorInterface $validator): JsonResponse
     {
         $covoiturage = $this->serializer->deserialize($request->getContent(), Covoiturage::class, 'json');
-        $voiture = $this->getUser()->getVoitures()[0];
-        $voiture->addCovoiturage($covoiturage);
+         $errors = $validator->validate($covoiturage);
+        if (count($errors) > 0) {
+        $errorsString = (string) $errors;
+        return new Response($errorsString);}
+        $covoiturage->setLieuDepart(strip_tags($covoiturage->getLieuDepart()));
+        $covoiturage->setLieuArrivee(strip_tags($covoiturage->getLieuArrivee()));
+        $covoiturage->setStatut('en attente');
+        $voiture = $this->getUser()->getVoitures()[strip_tags($covoiturage->getVoiture()->getImmatriculation())];
         $covoiturage->setIdChauffeur($this->getUser()->getId());
+        $voiture->addCovoiturage($covoiturage);
         $this->manager->persist($covoiturage);
         $this->manager->flush();
-
         $responseData = $this->serializer->serialize($covoiturage, 'json',Context::context() );
         return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
-
- 
 }
 
 
 #[Route('/allCovoituragesChauffeur/{idChauffeur}', name: 'allCovoituragesChauffeur', methods: 'GET')]
 public function allCovoituragesChauffeur(int $idChauffeur): JsonResponse
 {
-        $covoiturages = $this->repository->findBy(['idChauffeur' => $idChauffeur]);
-    
+        $covoiturages = $this->repository->findBy(['idChauffeur' => $idChauffeur]);    
      $covoiturages1=[[],[]];
     foreach($covoiturages as $covoiturage){
           if (($covoiturage->getStatut()=="en attente") ||($covoiturage->getStatut()=="en cours")){
             $covoiturages1[0][]=$covoiturage;
         }else{$covoiturages1[1][]= $covoiturage;}
  }
-            if ($covoiturages1) {
+             if ($covoiturages1) {
                 $responseData = $this->serializer->serialize($covoiturages1,  'json',Context::context());
                 return new jsonResponse($responseData, Response::HTTP_OK, [], true);
 
@@ -259,12 +263,16 @@ public function CovoituragesSansDate(string $lieuDepart,string $lieuArrivee): Js
      *     )
      * )
      */
-         public function edit(int $id, Request $request): JsonResponse
+         public function edit(int $id, Request $request,ValidatorInterface $validator): JsonResponse
         {   
             $data = json_decode($request->getContent(), true); 
             $covoiturage = $this->repository->findOneBy(['id' => $id]);
             if ($covoiturage) { 
-                $covoiturage->setStatut($data['statut']);    
+                $covoiturage->setStatut($data['statut']);
+                $errors = $validator->validate($covoiturage);
+                if (count($errors) > 0) {
+                $errorsString = (string) $errors;
+                return new Response($errorsString);}    
                 $this->manager->flush();
                 return new jsonResponse(null, Response::HTTP_NO_CONTENT);
                 }

@@ -16,21 +16,33 @@ class Voiture
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $modele = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $immatriculation = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    #[Assert\Choice(['Fuel','Electrique'])]
     private ?string $energie = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $couleur = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+   #[Assert\Regex(
+        pattern:'/^[0-9]{2}[/][0-9]{2}[/][0-9]{4}$/',
+         message:"La date n'est pas au bon format."
+)]
     private ?string $date_premiere_immatriculation = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     private ?int $nb_place = null;
 
     #[ORM\OneToMany(targetEntity: Covoiturage::class, mappedBy: 'voiture', orphanRemoval: true)]

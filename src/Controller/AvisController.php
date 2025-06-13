@@ -16,6 +16,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/avis', name: 'app_api_avis_')]
 class AvisController extends AbstractController
@@ -56,9 +57,14 @@ class AvisController extends AbstractController
      *     )
      * )
      */
-    public function new(Request $request): JsonResponse
+    public function new(Request $request,ValidatorInterface $validator): JsonResponse
     {
         $avis = $this->serializer->deserialize($request->getContent(), Avis::class, 'json');
+        $errors = $validator->validate($avis);
+        if (count($errors) > 0) {
+        $errorsString = (string) $errors;
+        return new Response($errorsString);}
+        $covoiturage->setCommentaire(strip_tags($covoiturage->getCommentaire()));
         $this->getUser()->addAvi($avis);
         $this->manager->persist($avis);
         $this->manager->flush();
@@ -159,7 +165,7 @@ public function allAvis(int $id): JsonResponse
         {   
             $avis = $this->repository->findOneBy(['id' => $id]);
             if ($avis) { 
-                $avis->setStatut($data['validé']);    
+                $avis->setStatut('validé');    
                 $this->manager->flush();
                 return new jsonResponse(null, Response::HTTP_NO_CONTENT);
                 }

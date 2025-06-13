@@ -16,6 +16,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 use Symfony\Component\Serializer\SerializerInterface;
 
@@ -54,9 +55,14 @@ class RoleController extends AbstractController
      *     )
      * )
      */
-    public function new(Request $request): JsonResponse
+    public function new(Request $request, ValidatorInterface $validator): JsonResponse
     {
-    $role = $this->serializer->deserialize($request->getContent(), Role::class, 'json');  
+    $role = $this->serializer->deserialize($request->getContent(), Role::class, 'json');
+          $errors = $validator->validate($role);
+        if (count($errors) > 0) {
+        $errorsString = (string) $errors;
+        return new Response($errorsString);
+    }
     $libelle=$role->getLibelle();
     $roleFound = $this->repository->findOneBy(['libelle' => $libelle]);
     if ($roleFound) {$roleFound->addUser($this->getUser());

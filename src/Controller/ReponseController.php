@@ -22,6 +22,7 @@ use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
 use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\SerializerInterface;
+use Symfony\Component\Validator\Validator\ValidatorInterface;
 
 #[Route('/api/reponse', name: 'app_api_reponse_')]
 class ReponseController extends AbstractController
@@ -64,9 +65,14 @@ class ReponseController extends AbstractController
      *     )
      * )
      */
-    public function setReponse1(Request $request, int $id): JsonResponse
+    public function setReponse1(Request $request, int $id, ValidatorInterface $validator): JsonResponse
     {
         $reponse = $this->serializer->deserialize($request->getContent(), Reponse::class, 'json');
+           $errors = $validator->validate($reponse);
+        if (count($errors) > 0) {
+        $errorsString = (string) $errors;
+        return new Response($errorsString);
+    }   
         $covoiturage=$this->covoituragerepository->findOneBy(['id' => $id]);
         if ($covoiturage) { 
             $this->getUser()->addReponse($reponse);
@@ -149,12 +155,18 @@ if ($reponse) {
      *     )
      * )
      */
-         public function editReponse2(int $id, Request $request): JsonResponse
+         public function editReponse2(int $id, Request $request,  ValidatorInterface $validator): JsonResponse
         {   
             $data = json_decode($request->getContent(), true); 
-            $reponse = $this->repository->findOneBy(['user' => $this->getUser()->getId(), 'covoiturage' => $id]);
-            if ($reponse) { 
+            $reponse = $this->repository->findOneBy(['user' => $this->getUser(), 'covoiturage' => $id]);
+            if ($reponse) {
                 $reponse->setReponse2($data['reponse2']);
+                $errors = $validator->validate($reponse);
+                if (count($errors) > 0) {
+                $errorsString = (string) $errors;
+                return new Response($errorsString);
+            } 
+                
                 $this->manager->flush();
                 $reponse = $this->serializer->serialize($reponse, 'json',Context::context());
                 return new jsonResponse($reponse, Response::HTTP_OK, [], true);
@@ -202,12 +214,17 @@ if ($reponse) {
      *     )
      * )
      */
-         public function editCommentaire(int $id, Request $request): JsonResponse
+         public function editCommentaire(int $id, Request $request,  ValidatorInterface $validator): JsonResponse
         {   
             $data = json_decode($request->getContent(), true); 
             $reponse = $this->repository->findOneBy(['user' => $this->getUser()->getId(), 'covoiturage' => $id]);
             if ($reponse) { 
-            $reponse->setCommentaire($data['commentaire']); 
+            $reponse->setCommentaire(strip_tags($data['commentaire']));
+            $errors = $validator->validate($reponse);
+            if (count($errors) > 0) {
+            $errorsString = (string) $errors;
+            return new Response($errorsString);
+    }
                 $this->manager->flush();
              $reponse = $this->serializer->serialize($reponse, 'json',Context::context());
 

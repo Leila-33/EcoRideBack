@@ -17,30 +17,48 @@ class Covoiturage
     private ?int $id = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank]
+    #[Assert\Date]
     private ?\DateTimeInterface $date_depart = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    #[Assert\Time(
+    withSeconds:'false')]
     private ?string $heure_depart = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $lieu_depart = null;
 
     #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotBlank]
+    #[Assert\Date]
     private ?\DateTimeInterface $date_arrivee = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+   #[Assert\Time(
+    withSeconds:'false')]
     private ?string $heure_arrivee = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $lieu_arrivee = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
+    #[Assert\Choice(['en attente','en cours', 'terminé'])]
     private ?string $statut = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     private ?int $nb_place = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     private ?float $prix_personne = null;
 
     #[ORM\ManyToOne(inversedBy: 'covoiturages',fetch:'EAGER')]
@@ -53,9 +71,13 @@ class Covoiturage
 
 
     #[ORM\Column(nullable: true)]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     private ?float $noteChauffeur = null;
 
     #[ORM\Column]
+    #[Assert\NotBlank]
+    #[Assert\Positive]
     private ?int $idChauffeur = null;
 
     #[ORM\OneToMany(targetEntity: Reponse::class, mappedBy: 'covoiturage', orphanRemoval: true, cascade: ['persist', 'remove'])]

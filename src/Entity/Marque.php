@@ -16,6 +16,7 @@ class Marque
     private ?int $id = null;
 
     #[ORM\Column(length: 50)]
+    #[Assert\NotBlank]
     private ?string $libelle = null;
 
     #[ORM\OneToMany(targetEntity: Voiture::class, mappedBy: 'marque', orphanRemoval: true)]
