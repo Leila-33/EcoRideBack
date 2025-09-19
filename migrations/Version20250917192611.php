@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20250531182031 extends AbstractMigration
+final class Version20250917192611 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -21,13 +21,13 @@ final class Version20250531182031 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse ADD covoiturage_id INT NOT NULL
+            ALTER TABLE commentaire ADD covoiturage_id INT NOT NULL
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse ADD CONSTRAINT FK_5FB6DEC762671590 FOREIGN KEY (covoiturage_id) REFERENCES covoiturage (id)
+            ALTER TABLE commentaire ADD CONSTRAINT FK_67F068BC62671590 FOREIGN KEY (covoiturage_id) REFERENCES covoiturage (id)
         SQL);
         $this->addSql(<<<'SQL'
-            CREATE INDEX IDX_5FB6DEC762671590 ON reponse (covoiturage_id)
+            CREATE INDEX IDX_67F068BC62671590 ON commentaire (covoiturage_id)
         SQL);
     }
 
@@ -35,13 +35,13 @@ final class Version20250531182031 extends AbstractMigration
     {
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse DROP FOREIGN KEY FK_5FB6DEC762671590
+            ALTER TABLE commentaire DROP FOREIGN KEY FK_67F068BC62671590
         SQL);
         $this->addSql(<<<'SQL'
-            DROP INDEX IDX_5FB6DEC762671590 ON reponse
+            DROP INDEX IDX_67F068BC62671590 ON commentaire
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse DROP covoiturage_id
+            ALTER TABLE commentaire DROP covoiturage_id
         SQL);
     }
 }

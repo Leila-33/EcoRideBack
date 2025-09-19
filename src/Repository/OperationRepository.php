@@ -20,34 +20,37 @@ class OperationRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Operation::class);
     }
-  public function findByDay(): array{
-        $conn=$this->getEntityManager()->getConnection();
-        $sql='SELECT o.date_operation,SUM(o.operation) FROM operation o GROUP BY o.date_operation ASC';        
-        $resultSet=$conn->executeQuery($sql);
-        return $resultSet->fetchAllAssociative();
-        }
-//    /**
-//     * @return Operation[] Returns an array of Operation objects
-//     */
-//    public function findByExampleField($value): array
-//    {
-//        return $this->createQueryBuilder('o')
-//            ->andWhere('o.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->orderBy('o.id', 'ASC')
-//            ->setMaxResults(10)
-//            ->getQuery()
-//            ->getResult()
-//        ;
-//    }
 
-//    public function findOneBySomeField($value): ?Operation
-//    {
-//        return $this->createQueryBuilder('o')
-//            ->andWhere('o.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+    public function findByDay(): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = 'SELECT o.date_operation, SUM(o.montant) AS total FROM operation o GROUP BY o.date_operation ORDER BY o.date_operation ASC';
+        $resultSet = $conn->executeQuery($sql);
+
+        return $resultSet->fetchAllAssociative();
+    }
+    //    /**
+    //     * @return Operation[] Returns an array of Operation objects
+    //     */
+    //    public function findByExampleField($value): array
+    //    {
+    //        return $this->createQueryBuilder('o')
+    //            ->andWhere('o.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->orderBy('o.id', 'ASC')
+    //            ->setMaxResults(10)
+    //            ->getQuery()
+    //            ->getResult()
+    //        ;
+    //    }
+
+    //    public function findOneBySomeField($value): ?Operation
+    //    {
+    //        return $this->createQueryBuilder('o')
+    //            ->andWhere('o.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->getQuery()
+    //            ->getOneOrNullResult()
+    //        ;
+    //    }
 }

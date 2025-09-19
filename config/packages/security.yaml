@@ -41,12 +41,14 @@ security:
          - { path: ^/api/login, roles: PUBLIC_ACCESS }
          - { path : ^/api/doc, roles : PUBLIC_ACCESS }
          - { path: ^/api/covoiturage/Covoiturages/, roles : PUBLIC_ACCESS }
-         - { path: ^/api/covoiturage/c/, roles : PUBLIC_ACCESS }
+         - { path: ^/api/covoiturage/, roles : PUBLIC_ACCESS, methods: [GET] }
          - { path: ^/api/covoiturage/prixMaximumEtMinimum, roles : PUBLIC_ACCESS }
          - { path: ^/api/covoiturage/Covoiturage/,roles : PUBLIC_ACCESS }
          - { path: ^/api/covoiturage/CovoituragesSansDate/,roles : PUBLIC_ACCESS }
          - { path: ^/api/avis/allAvis/, roles : PUBLIC_ACCESS }
          - { path: ^/api/covoiturage/nombreDeparts,roles : PUBLIC_ACCESS }
+         - { path: ^/api/ville/autocomplete, roles : PUBLIC_ACCESS }
+         - { path: ^/api/mailer/emailContact, roles : PUBLIC_ACCESS }
          - { path: ^/api, roles : ROLE_USER }
 
 when@test:

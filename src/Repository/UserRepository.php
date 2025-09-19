@@ -11,7 +11,8 @@ use Symfony\Component\Security\Core\User\PasswordUpgraderInterface;
 
 /**
  * @extends ServiceEntityRepository<User>
-* @implements PasswordUpgraderInterface<User>
+ *
+ * @implements PasswordUpgraderInterface<User>
  *
  * @method User|null find($id, $lockMode = null, $lockVersion = null)
  * @method User|null findOneBy(array $criteria, array $orderBy = null)
@@ -40,24 +41,37 @@ class UserRepository extends ServiceEntityRepository implements PasswordUpgrader
     }
 
     /**
-    * @return User[] Returns an array of User objects
+     * @return User[] Returns an array of User objects
      */
-    public function findByName(): array
+    public function findAll(): array
     {
         return $this->createQueryBuilder('u')
+            ->where('u.roles NOT LIKE :role')
+            ->setParameter('role', '%ROLE_ADMIN%')
             ->orderBy('u.nom', 'ASC')
             ->getQuery()
             ->getResult()
         ;
     }
 
-//    public function findOneBySomeField($value): ?User
-//    {
-//        return $this->createQueryBuilder('u')
-//            ->andWhere('u.exampleField = :val')
-//            ->setParameter('val', $value)
-//            ->getQuery()
-//            ->getOneOrNullResult()
-//        ;
-//    }
+    public function findByRole(string $role): ?User
+    {
+        $admin = $this->createQueryBuilder('u')
+        ->where('u.roles LIKE :role')
+        ->setParameter('role', '%"'.$role.'"%')
+        ->setMaxResults(1)
+        ->getQuery()
+        ->getOneOrNullResult();
+
+        return $admin;
+    }
+    //    public function findOneBySomeField($value): ?User
+    //    {
+    //        return $this->createQueryBuilder('u')
+    //            ->andWhere('u.exampleField = :val')
+    //            ->setParameter('val', $value)
+    //            ->getQuery()
+    //            ->getOneOrNullResult()
+    //        ;
+    //    }
 }

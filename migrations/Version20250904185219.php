@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20250531122929 extends AbstractMigration
+final class Version20250904185219 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -21,16 +21,19 @@ final class Version20250531122929 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE covoiturage DROP reponses, DROP reponses1
+            ALTER TABLE avis ADD CONSTRAINT FK_8F91ABF060BB6FE6 FOREIGN KEY (auteur_id) REFERENCES user (id)
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse ADD user_id INT NOT NULL
+            ALTER TABLE avis ADD CONSTRAINT FK_8F91ABF085C0B3BE FOREIGN KEY (chauffeur_id) REFERENCES user (id)
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse ADD CONSTRAINT FK_5FB6DEC7A76ED395 FOREIGN KEY (user_id) REFERENCES user (id)
+            CREATE INDEX IDX_8F91ABF060BB6FE6 ON avis (auteur_id)
         SQL);
         $this->addSql(<<<'SQL'
-            CREATE INDEX IDX_5FB6DEC7A76ED395 ON reponse (user_id)
+            CREATE INDEX IDX_8F91ABF085C0B3BE ON avis (chauffeur_id)
+        SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE covoiturage DROP id_chauffeur
         SQL);
     }
 
@@ -38,16 +41,19 @@ final class Version20250531122929 extends AbstractMigration
     {
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE covoiturage ADD reponses LONGTEXT DEFAULT NULL COMMENT '(DC2Type:array)', ADD reponses1 LONGTEXT DEFAULT NULL COMMENT '(DC2Type:array)'
+            ALTER TABLE avis DROP FOREIGN KEY FK_8F91ABF060BB6FE6
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse DROP FOREIGN KEY FK_5FB6DEC7A76ED395
+            ALTER TABLE avis DROP FOREIGN KEY FK_8F91ABF085C0B3BE
         SQL);
         $this->addSql(<<<'SQL'
-            DROP INDEX IDX_5FB6DEC7A76ED395 ON reponse
+            DROP INDEX IDX_8F91ABF060BB6FE6 ON avis
         SQL);
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse DROP user_id
+            DROP INDEX IDX_8F91ABF085C0B3BE ON avis
+        SQL);
+        $this->addSql(<<<'SQL'
+            ALTER TABLE covoiturage ADD id_chauffeur INT NOT NULL
         SQL);
     }
 }

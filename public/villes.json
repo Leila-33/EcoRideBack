@@ -1,0 +1,22 @@
+[
+  {"nom": "Paris", "codePostal": "75000", "departement": "75", "location": {"type": "Point", "coordinates": [2.3522, 48.8566]}},
+  {"nom": "Lyon", "codePostal": "69000", "departement": "69", "location": {"type": "Point", "coordinates": [4.8357, 45.7640]}},
+  {"nom": "Marseille", "codePostal": "13000", "departement": "13", "location": {"type": "Point", "coordinates": [5.3698, 43.2965]}},
+  {"nom": "Toulouse", "codePostal": "31000", "departement": "31", "location": {"type": "Point", "coordinates": [1.4442, 43.6047]}},
+  {"nom": "Nice", "codePostal": "06000", "departement": "06", "location": {"type": "Point", "coordinates": [7.2619, 43.7102]}},
+  {"nom": "Nantes", "codePostal": "44000", "departement": "44", "location": {"type": "Point", "coordinates": [-1.5536, 47.2184]}},
+  {"nom": "Strasbourg", "codePostal": "67000", "departement": "67", "location": {"type": "Point", "coordinates": [7.7521, 48.5734]}},
+  {"nom": "Montpellier", "codePostal": "34000", "departement": "34", "location": {"type": "Point", "coordinates": [3.8767, 43.6119]}},
+  {"nom": "Bordeaux", "codePostal": "33000", "departement": "33", "location": {"type": "Point", "coordinates": [-0.5792, 44.8378]}},
+  {"nom": "Lille", "codePostal": "59000", "departement": "59", "location": {"type": "Point", "coordinates": [3.0573, 50.6292]}},
+  {"nom": "Rennes", "codePostal": "35000", "departement": "35", "location": {"type": "Point", "coordinates": [-1.6778, 48.1173]}},
+  {"nom": "Reims", "codePostal": "51100", "departement": "51", "location": {"type": "Point", "coordinates": [4.0317, 49.2583]}},
+  {"nom": "Saint-Étienne", "codePostal": "42000", "departement": "42", "location": {"type": "Point", "coordinates": [4.3903, 45.4397]}},
+  {"nom": "Toulon", "codePostal": "83000", "departement": "83", "location": {"type": "Point", "coordinates": [5.9280, 43.1242]}},
+  {"nom": "Grenoble", "codePostal": "38000", "departement": "38", "location": {"type": "Point", "coordinates": [5.7245, 45.1885]}},
+  {"nom": "Dijon", "codePostal": "21000", "departement": "21", "location": {"type": "Point", "coordinates": [5.0415, 47.3220]}},
+  {"nom": "Angers", "codePostal": "49000", "departement": "49", "location": {"type": "Point", "coordinates": [-0.5586, 47.4784]}},
+  {"nom": "Nîmes", "codePostal": "30000", "departement": "30", "location": {"type": "Point", "coordinates": [4.3601, 43.8367]}},
+  {"nom": "Villeurbanne", "codePostal": "69100", "departement": "69", "location": {"type": "Point", "coordinates": [4.8902, 45.7667]}},
+  {"nom": "Clermont-Ferrand", "codePostal": "63000", "departement": "63", "location": {"type": "Point", "coordinates": [3.0870, 45.7772]}}
+]

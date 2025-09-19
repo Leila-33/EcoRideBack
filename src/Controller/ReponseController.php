@@ -1,26 +1,19 @@
 <?php
+
 namespace App\Controller;
 
-use OpenApi\Annotations as OA;
-include_once 'Context.php';
 use App\Entity\Reponse;
-
-
 use App\Repository\CovoiturageRepository;
 use App\Repository\ReponseRepository;
-use App\Repository\VoitureRepository;
-use App\Repository\AvisRepository;
-use App\Repository\UserRepository;
-
-use Datetime;
-use DateTimeImmutable ;
+use App\Utilis\Validator;
 use Doctrine\ORM\EntityManagerInterface;
+use OpenApi\Attributes as OA;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
-use Symfony\Component\HttpFoundation\{JsonResponse, Request, Response};
+use Symfony\Component\HttpFoundation\JsonResponse;
+use Symfony\Component\HttpFoundation\Request;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
-use Symfony\Component\Serializer\Normalizer\AbstractNormalizer;
-use Symfony\Component\Serializer\Exception\CircularReferenceException;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
 
@@ -33,205 +26,235 @@ class ReponseController extends AbstractController
         private SerializerInterface $serializer,
         private UrlGeneratorInterface $urlGenerator,
         private CovoiturageRepository $covoituragerepository,
+    ) {
+    }
 
-
-    ){}
-
-
-    #[Route('/setReponse1/{id}', name: 'setReponse1', methods: 'POST')]  
-    /** @OA\Post(
-     *     path="/api/reponse",
-     *     summary="Créer un reponse",
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Données du reponse",
-     *         @OA\JsonContent(
-     *         type="object",
-     *         description="Données du reponse",
-     *          @OA\Property(property="name", type="string", example="Nom du reponse"),
-     *          @OA\Property(property="description", type="string", example="Description du reponse")
-     * )
-     * ),
-     *     @OA\Response(
-     *         response=201,
-     *         description="Reponse créé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du reponse"),
-     *             @OA\Property(property="description", type="string", example="Description du reponse"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     )
-     * )
-     */
+    #[Route('/setReponse1/{id}', name: 'setReponse1', methods: ['POST'])]
+    #[OA\Post(
+        path: '/api/reponse/setReponse1/{id}',
+        summary: "Répondre à la question de fin de trajet d'un covoiturage.",
+        parameters: [new OA\Parameter(
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant du covoiturage',
+            schema: new OA\Schema(type: 'integer', example: 1)
+        )],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: 'Réponse à enregistrer',
+            content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ReponseCreateDto')]),
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Réponse enregistrée avec succès',
+                headers: [new OA\Header(
+                    header: 'Location',
+                    description: 'Url de la ressource créée',
+                    schema: new OA\Schema(type: 'string', format: 'uri')
+                )],
+                content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ReponseResponseDto')]),
+            new OA\Response(response: 404, description: 'Covoiturage introuvable', content: new OA\JsonContent(ref: '#/components/schemas/ErrorNotFoundResponseDto')),
+            new OA\Response(response: 409, description: 'Réponse déjà enregistrée'),
+            new OA\Response(response: 400, description: 'Erreur lors de la validation', content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ErrorResponseDto')])])]
     public function setReponse1(Request $request, int $id, ValidatorInterface $validator): JsonResponse
     {
-        $reponse = $this->serializer->deserialize($request->getContent(), Reponse::class, 'json');
-           $errors = $validator->validate($reponse);
-        if (count($errors) > 0) {
-        $errorsString = (string) $errors;
-        return new Response($errorsString);
-    }   
-        $covoiturage=$this->covoituragerepository->findOneBy(['id' => $id]);
-        if ($covoiturage) { 
-            $this->getUser()->addReponse($reponse);
-            $covoiturage->addReponse($reponse);
-            $this->manager->persist($reponse);
-            $this->manager->flush();
-            $responseData = $this->serializer->serialize($reponse, 'json',Context::context());
-            return new JsonResponse($responseData, Response::HTTP_CREATED, [], true);
-        }         
-            return new jsonResponse(null, Response::HTTP_NOT_FOUND);
-            
- 
-}
+        $covoiturage = $this->covoituragerepository->findOneBy(['id' => $id]);
+        if (!$covoiturage) {
+            return new JsonResponse(['error' => 'Covoiturage introuvable'], Response::HTTP_NOT_FOUND);
+        }
+        $reponse = $this->repository->findOneBy(['user' => $this->getUser(), 'covoiturage' => $id]);
+        if ($reponse) {
+            return new JsonResponse(['error' => 'Réponse déjà donnée.'], Response::HTTP_CONFLICT);
+        }
+        $reponse = new Reponse();
+        $data = json_decode($request->getContent(), true);
+        $reponse->setReponse1($data['reponse1'] ?? null);
+        if ('non' === $data['reponse1']) {
+            $reponse->setStatut('en attente');
+        }
+        if ($errorResponse = Validator::validateEntity($reponse, $validator)) {
+            return $errorResponse;
+        }
+        $this->getUser()->addReponse($reponse);
+        $covoiturage->addReponse($reponse);
+        $this->manager->persist($reponse);
+        $this->manager->flush();
+        $location = $this->generateUrl('app_api_reponse_show', ['id' => $reponse->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
 
-
-
-    
-#[Route('/show/{id}', name: 'Reponse', methods: 'GET')]
-public function Reponse(int $id): JsonResponse
-   {     $reponse = $this->repository->findOneBy(['user' => $this->getUser()->getId(), 'covoiturage' => $id]);
-
-if ($reponse) { 
-              $reponse = $this->serializer->serialize($reponse, 'json',Context::context());
-                return new jsonResponse($reponse, Response::HTTP_OK, [], true);
-            }
-            return new jsonResponse(null, Response::HTTP_NOT_FOUND);
-
-            }
-
-   
-     
-#[Route('/reponsesNon', name: 'reponseNon', methods: 'GET')]
-public function ReponsesNon(): JsonResponse
-   {     $reponse = $this->repository->findBy(['reponse1' => 'non']);
-
-if ($reponse) { 
-              $reponse = $this->serializer->serialize($reponse, 'json',Context::context());
-                return new jsonResponse($reponse, Response::HTTP_OK, [], true);
-            }
-            return new jsonResponse(null, Response::HTTP_NOT_FOUND);
-
-            }
-  
-        
-        #[Route('/editReponse2/{id}', name: 'editReponse2', methods: 'PUT')]
-        /** @OA\Put(
-     *     path="/api/reponse/{id}",
-     *     summary="Modifier un reponse par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID du reponse à modifier",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Données du reponse",
-     *         @OA\JsonContent(
-     *         type="object",
-     *         description="Données du reponse",
-     *          @OA\Property(property="name", type="string", example="Nom du reponse"),
-     *          @OA\Property(property="description", type="string", example="Description du reponse")
-     * )
-     * ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Reponse trouvé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du reponse"),
-     *             @OA\Property(property="description", type="string", example="Description du reponse"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Reponse non trouvé"
-     *     )
-     * )
-     */
-         public function editReponse2(int $id, Request $request,  ValidatorInterface $validator): JsonResponse
-        {   
-            $data = json_decode($request->getContent(), true); 
-            $reponse = $this->repository->findOneBy(['user' => $this->getUser(), 'covoiturage' => $id]);
-            if ($reponse) {
-                $reponse->setReponse2($data['reponse2']);
-                $errors = $validator->validate($reponse);
-                if (count($errors) > 0) {
-                $errorsString = (string) $errors;
-                return new Response($errorsString);
-            } 
-                
-                $this->manager->flush();
-                $reponse = $this->serializer->serialize($reponse, 'json',Context::context());
-                return new jsonResponse($reponse, Response::HTTP_OK, [], true);
-            }
-            return new jsonResponse( null, Response::HTTP_NOT_FOUND);
-
-            }
-        
-   
-        #[Route('/editCommentaire/{id}', name: 'editCommentaire', methods: 'PUT')]
-        /** @OA\Put(
-     *     path="/api/reponse/{id}",
-     *     summary="Modifier un reponse par ID",
-     *     @OA\Parameter(
-     *         name="id",
-     *         in="path",
-     *         required=true,
-     *         description="ID du reponse à modifier",
-     *         @OA\Schema(type="integer")
-     *     ),
-     *     @OA\RequestBody(
-     *         required=true,
-     *         description="Données du reponse",
-     *         @OA\JsonContent(
-     *         type="object",
-     *         description="Données du reponse",
-     *          @OA\Property(property="name", type="string", example="Nom du reponse"),
-     *          @OA\Property(property="description", type="string", example="Description du reponse")
-     * )
-     * ),
-     *     @OA\Response(
-     *         response=204,
-     *         description="Reponse trouvé avec succès",
-     *         @OA\JsonContent(
-     *             type="object",
-     *             @OA\Property(property="id", type="integer", example=1),
-     *             @OA\Property(property="name", type="string", example="Nom du reponse"),
-     *             @OA\Property(property="description", type="string", example="Description du reponse"),
-     *             @OA\Property(property="createdAt", type="string", format="date-time")
-     *         )
-     *     ),
-     *     @OA\Response(
-     *         response=404,
-     *         description="Reponse non trouvé"
-     *     )
-     * )
-     */
-         public function editCommentaire(int $id, Request $request,  ValidatorInterface $validator): JsonResponse
-        {   
-            $data = json_decode($request->getContent(), true); 
-            $reponse = $this->repository->findOneBy(['user' => $this->getUser()->getId(), 'covoiturage' => $id]);
-            if ($reponse) { 
-            $reponse->setCommentaire(strip_tags($data['commentaire']));
-            $errors = $validator->validate($reponse);
-            if (count($errors) > 0) {
-            $errorsString = (string) $errors;
-            return new Response($errorsString);
+        return new JsonResponse($this->toArray2($reponse), Response::HTTP_CREATED, ['Location' => $location]);
     }
-                $this->manager->flush();
-             $reponse = $this->serializer->serialize($reponse, 'json',Context::context());
 
-             return new jsonResponse($reponse, Response::HTTP_OK, [], true);
-            }
-            return new jsonResponse( null, Response::HTTP_NOT_FOUND);
+    #[Route('/show/{id}', name: 'show', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/reponse/show/{id}',
+        summary: "Récupère la réponse de l'utilisateur courant pour un covoiturage donné.",
+        parameters: [
+            new OA\Parameter(name: 'id', in: 'path', required: true, description: 'Identifiant du covoiturage',
+                schema: new OA\Schema(type: 'integer', example: 1)
+            )],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: "Réponse de l'utilisateur courant au covoiturage",
+                content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ReponseResponseDto')]),
+            new OA\Response(
+                response: 404,
+                description: 'Réponse non trouvée',
+                content: new OA\JsonContent(ref: '#/components/schemas/ErrorNotFoundResponseDto')
+            ),
+        ])
+    ]
+    public function reponse(int $id): JsonResponse
+    {
+        $reponse = $this->repository->findOneBy(['user' => $this->getUser(), 'covoiturage' => $id]);
+        if (!$reponse) {
+            return new JsonResponse(['error' => 'Réponse non trouvée.'], Response::HTTP_NOT_FOUND);
+        }
 
-            }
+        return new JsonResponse($this->toArray2($reponse), Response::HTTP_OK, [], true);
+    }
 
- }
+    #[Route('/reponsesNon', name: 'reponseNon', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/reponse/reponsesNon',
+        summary: 'Récupère les réponses négatives à la question de fin de trajet.',
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Liste de toutes les réponses négatives à la question de fin de trajet',
+                content: ['application/json' => new OA\JsonContent(type: 'array', items: new OA\Items(ref: '#/components/schemas/ReponseResponseDto'))]
+            )])]
+    public function reponsesNon(): JsonResponse
+    {
+        $reponses = $this->repository->findReponsesNon();
+        $reponses = array_filter($reponses);
+        $filtered = array_map(function ($reponse) {return $this->toArray($reponse); }, $reponses);
+
+        return new JsonResponse($filtered, Response::HTTP_OK);
+    }
+
+    #[Route('/editReponse/{id}', name: 'editReponse', methods: ['PUT'])]
+    #[OA\Put(
+        path: '/api/reponse/editReponse/{id}',
+        summary: "Indiquer si l'utilisateur courant a posté un avis ou un commentaire.",
+        parameters: [new OA\Parameter(
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant du covoiturage',
+            schema: new OA\Schema(type: 'integer', example: 1)
+        )],
+        requestBody: new OA\RequestBody(
+            required: true,
+            description: 'Réponse à enregistrer',
+            content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ReponseEditDto')]),
+
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Réponse enregistrée avec succès',
+                content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ReponseResponseDto')]),
+            new OA\Response(response: 404, description: 'Covoiturage ou réponse introuvable', content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ErrorNotFoundResponseDto')]),
+            new OA\Response(response: 400, description: 'Erreur lors de la validation ou réponse2 manquant', content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ErrorResponseDto')])])]
+    public function editReponse(int $id, Request $request, ValidatorInterface $validator): JsonResponse
+    {
+        $covoiturage = $this->covoituragerepository->findOneBy(['id' => $id]);
+        if (!$covoiturage) {
+            return new JsonResponse(['error' => 'Covoiturage introuvable'], Response::HTTP_NOT_FOUND);
+        }
+        $data = json_decode($request->getContent(), true);
+        $reponse = $this->repository->findOneBy(['user' => $this->getUser(), 'covoiturage' => $covoiturage]);
+        if (!$reponse) {
+            return new JsonResponse(['error' => 'Reponse introuvable'], Response::HTTP_NOT_FOUND);
+        }
+        if (!isset($data['reponse2'])) {
+            return new JsonResponse(['error' => 'réponse2 manquante.'], Response::HTTP_BAD_REQUEST);
+        }
+        $reponse->setReponse2($data['reponse2']);
+        if ($errorResponse = Validator::validateEntity($reponse, $validator)) {
+            return $errorResponse;
+        }
+        $this->manager->flush();
+
+        return new JsonResponse($this->toArray2($reponse), Response::HTTP_OK);
+    }
+
+    #[Route('/getNbReponses/{id}', name: 'getNbReponses', methods: ['GET'])]
+    #[OA\Get(
+        path: '/api/reponse/getNbReponses/{id}',
+        summary: 'Récupère le nombre de réponses liés à un covoiturage donné.',
+        parameters: [new OA\Parameter(
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant du covoiturage',
+            schema: new OA\Schema(type: 'integer', example: 1)
+        )],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'Nombre de réponses liés à un covoiturage donné',
+                content: ['application/json' => new OA\JsonContent(
+                    type: 'array',
+                    items: new OA\Items(
+                        type: 'object',
+                        properties: [
+                            new OA\Property(property: 'nbReponses', type: 'integer', example: 1),
+                        ]))]
+            ),
+            new OA\Response(response: 404, description: 'Covoiturage introuvable', content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ErrorNotFoundResponseDto')])])]
+    public function getNbReponses(int $id): JsonResponse
+    {
+        $covoiturage = $this->covoituragerepository->findOneBy(['id' => $id]);
+        if (!$covoiturage) {
+            return new JsonResponse(['error' => 'Covoiturage introuvable'], Response::HTTP_NOT_FOUND);
+        }
+        $nbReponses = $this->repository->countByCovoiturages($id);
+
+        return new JsonResponse(['nbReponses' => $nbReponses], Response::HTTP_OK);
+    }
+
+    public function toArray(Reponse $reponse)
+    {
+        $covoiturage = $reponse->getCovoiturage();
+        $commentaire = $covoiturage->getCommentaires()->filter(function ($c) use ($reponse) {
+            return $c->getAuteur() === $reponse->getUser();
+        })->first();
+
+        return [
+            'id' => $reponse->getId(),
+            'reponse1' => $reponse->getReponse1(),
+            'reponse2' => $reponse->getReponse2(),
+            'statut' => $reponse->getStatut(),
+            'user' => [
+                'email' => $reponse->getUser()->getEmail(),
+            ],
+            'covoiturage' => [
+                'id' => $covoiturage->getId(),
+                'dateDepart' => $covoiturage->getDateDepart()->format('Y-m-d'),
+                'heureDepart' => $covoiturage->getHeureDepart(),
+                'lieuDepart' => $covoiturage->getLieuDepart(),
+                'dateArrivee' => $covoiturage->getDateArrivee()->format('Y-m-d'),
+                'heureArrivee' => $covoiturage->getHeureArrivee(),
+                'lieuArrivee' => $covoiturage->getLieuArrivee(),
+                'prixPersonne' => $covoiturage->getPrixPersonne(),
+                'chauffeur' => [
+                    'email' => $covoiturage->getVoiture()->getUser()->getEmail()],
+            ],
+            'commentaire' => $commentaire ? [
+                'id' => $commentaire->getId(),
+                'commentaire' => $commentaire->getCommentaire()]
+             : null];
+    }
+
+    public function toArray2(Reponse $reponse)
+    {
+        return [
+            'id' => $reponse->getId(),
+            'reponse1' => $reponse->getReponse1(),
+            'reponse2' => $reponse->getReponse2(),
+            'statut' => $reponse->getStatut(),
+        ];
+    }
+}

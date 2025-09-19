@@ -1,8 +1,8 @@
 nelmio_api_doc :
     documentation :
         info :
-            title: Restaurant API
-            description : Documentation de l'API Restaurant Studi.
+            title: Ecoride API
+            description : Documentation de l'API Ecoride.
             version : 1.0.0
         components :
             securitySchemes :
@@ -15,3 +15,109 @@ nelmio_api_doc :
     areas: # to filter documented areas
         path_patterns:
             - ^/api(?!/doc$) # Accepts routes under /api except /api/doc
+    models:
+        use_jms: false
+        names:
+            App\Dto\AvisCreateDto: 
+                type: App\Dto\AvisCreateDto
+                alias : AvisCreateDto    
+            App\Dto\AvisResponseDto: 
+                type: App\Dto\AvisResponseDto
+                alias : AvisResponseDto
+                
+            App\Dto\ErrorResponseDto: 
+                type: App\Dto\ErrorResponseDto
+                alias : ErrorResponseDto              
+            App\Dto\ErrorNotFoundResponseDto: 
+                type: App\Dto\ErrorNotFoundResponseDto
+                alias : ErrorNotFoundResponseDto
+         
+            
+            App\Dto\CommentaireCreateDto: 
+                type: App\Dto\CommentaireCreateDto
+                alias : CommentaireCreateDto         
+            App\Dto\CommentaireResponseDto: 
+                type: App\Dto\CommentaireResponseDto
+                alias : CommentaireResponseDto
+
+
+            App\Dto\CovoiturageCreateDto: 
+                type: App\Dto\CovoiturageCreateDto
+                alias : CovoiturageCreateDto         
+            App\Dto\CovoiturageResponseDto: 
+                type: App\Dto\CovoiturageResponseDto
+                alias : CovoiturageResponseDto
+            
+            
+            App\Dto\EmailContactDto: 
+                type: App\Dto\EmailContactDto
+                alias : EmailContactDto      
+            App\Dto\EmailCovoiturageDto: 
+                type: App\Dto\EmailCovoiturageDto
+                alias : EmailCovoiturageDto      
+            App\Dto\EmailEmployeDto: 
+                type: App\Dto\EmailEmployeDto
+                alias : EmailEmployeDto
+
+            App\Dto\LoginDto: 
+                type: App\Dto\LoginDto
+                alias : LoginDto      
+            App\Dto\UserCreateDto: 
+                type: App\Dto\UserCreateDto
+                alias : UserCreateDto      
+            App\Dto\UserEditDto: 
+                type: App\Dto\UserEditDto
+                alias : UserEditDto       
+            App\Dto\UserListResponseDto: 
+                type: App\Dto\UserListResponseDto
+                alias : UserListResponseDto      
+            App\Dto\UserMeResponseDto: 
+                type: App\Dto\UserMeResponseDto
+                alias : UserMeResponseDto      
+            App\Dto\UserResponseDto: 
+                type: App\Dto\UserResponseDto
+                alias : UserResponseDto
+            App\Dto\PasswordCreateDto: 
+                type: App\Dto\PasswordCreateDto
+                alias : PasswordCreateDto
+
+            App\Dto\OperationCreateDto: 
+                type: App\Dto\OperationCreateDto
+                alias : OperationCreateDto      
+            App\Dto\OperationResponseDto: 
+                type: App\Dto\OperationResponseDto
+                alias : OperationResponseDto      
+
+            App\Dto\ParametreCreateDto: 
+                type: App\Dto\ParametreCreateDto
+                alias : ParametreCreateDto      
+            App\Dto\ParametreResponseDto: 
+                type: App\Dto\ParametreResponseDto
+                alias : ParametreResponseDto  
+
+                
+            App\Dto\ReponseCreateDto: 
+                type: App\Dto\ReponseCreateDto
+                alias : ReponseCreateDto      
+            App\Dto\ReponseEditDto: 
+                type: App\Dto\ReponseEditDto
+                alias : ReponseEditDto  
+            App\Dto\ReponseResponseDto: 
+                type: App\Dto\ReponseResponseDto
+                alias : ReponseResponseDto  
+
+                        
+            App\Dto\RoleEntityCreateDto: 
+                type: App\Dto\RoleEntityCreateDto
+                alias : RoleEntityCreateDto      
+            App\Dto\RoleEntityResponseDto: 
+                type: App\Dto\RoleEntityResponseDto
+                alias : RoleEntityResponseDto  
+
+
+            App\Dto\VoitureCreateDto: 
+                type: App\Dto\VoitureCreateDto
+                alias : VoitureCreateDto      
+            App\Dto\VoitureResponseDto: 
+                type: App\Dto\VoitureResponseDto
+                alias : VoitureResponseDto 

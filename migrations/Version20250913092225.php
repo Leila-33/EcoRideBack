@@ -10,7 +10,7 @@ use Doctrine\Migrations\AbstractMigration;
 /**
  * Auto-generated Migration: Please modify to your needs!
  */
-final class Version20250602171144 extends AbstractMigration
+final class Version20250913092225 extends AbstractMigration
 {
     public function getDescription(): string
     {
@@ -21,7 +21,10 @@ final class Version20250602171144 extends AbstractMigration
     {
         // this up() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse CHANGE reponse1 reponse1 VARCHAR(255) DEFAULT NULL
+            CREATE UNIQUE INDEX UNIQ_A50EA5D9A4D60759 ON role_entity (libelle)
+        SQL);
+        $this->addSql(<<<'SQL'
+            CREATE UNIQUE INDEX UNIQ_8D93D64986CC499D ON user (pseudo)
         SQL);
     }
 
@@ -29,7 +32,10 @@ final class Version20250602171144 extends AbstractMigration
     {
         // this down() migration is auto-generated, please modify it to your needs
         $this->addSql(<<<'SQL'
-            ALTER TABLE reponse CHANGE reponse1 reponse1 VARCHAR(255) NOT NULL
+            DROP INDEX UNIQ_A50EA5D9A4D60759 ON role_entity
+        SQL);
+        $this->addSql(<<<'SQL'
+            DROP INDEX UNIQ_8D93D64986CC499D ON user
         SQL);
     }
 }

@@ -4,7 +4,7 @@ namespace App\Entity;
 
 use App\Repository\ReponseRepository;
 use Doctrine\ORM\Mapping as ORM;
-use Symfony\Component\validator\Constraints as Assert;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: ReponseRepository::class)]
 class Reponse
@@ -13,26 +13,26 @@ class Reponse
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-    #[Assert\NotBlank]
-    #[Assert\Choice(['oui','non'])]
+    #[Assert\NotBlank(message: 'La réponse est obligatoire.')]
+    #[Assert\Choice(['oui', 'non'], message: 'La réponse doit être oui ou non.')]
     #[ORM\Column(length: 255)]
     private ?string $reponse1 = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\IdenticalTo('oui')]
+    #[Assert\Choice(['oui'], message: 'La réponse doit être oui.')]
     private ?string $reponse2 = null;
 
-    #[ORM\Column(length: 255, nullable: true)]
-    #[Assert\NotBlank]
-    private ?string $commentaire = null;
-
-    #[ORM\ManyToOne(inversedBy: 'reponses', fetch:'EAGER')]
+    #[ORM\ManyToOne(inversedBy: 'reponses', fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     private ?User $user = null;
 
     #[ORM\ManyToOne(inversedBy: 'reponses', cascade: ['persist', 'remove'])]
     #[ORM\JoinColumn(nullable: false)]
     private ?Covoiturage $covoiturage = null;
+
+    #[ORM\Column(length: 10, nullable: true)]
+    #[Assert\Choice(['en attente', 'résolu'], message: "Le statut doit être 'en attente' ou 'résolu'.")]
+    private ?string $statut = null;
 
     public function getId(): ?int
     {
@@ -63,18 +63,6 @@ class Reponse
         return $this;
     }
 
-    public function getCommentaire(): ?string
-    {
-        return $this->commentaire;
-    }
-
-    public function setCommentaire(?string $commentaire): static
-    {
-        $this->commentaire = $commentaire;
-
-        return $this;
-    }
-
     public function getUser(): ?User
     {
         return $this->user;
@@ -95,6 +83,18 @@ class Reponse
     public function setCovoiturage(?Covoiturage $covoiturage): static
     {
         $this->covoiturage = $covoiturage;
+
+        return $this;
+    }
+
+    public function getStatut(): ?string
+    {
+        return $this->statut;
+    }
+
+    public function setStatut(?string $statut): static
+    {
+        $this->statut = $statut;
 
         return $this;
     }

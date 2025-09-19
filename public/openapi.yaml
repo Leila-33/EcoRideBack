@@ -1,0 +1,776 @@
+openapi: 3.0.0
+info:
+  title: 'EcoRide API'
+  description: "Documentation de l'API EcoRide"
+  version: 1.0.0
+paths:
+  /api/avis:
+    post:
+      summary: 'Poster un avis'
+      operationId: 1ce1873e1594e755c6cc0c9312dcd6b3
+      requestBody:
+        description: "Données de l'avis à inscrire"
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AvisCreate'
+      responses:
+        '201':
+          description: 'Avis créé avec succès'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AvisResponse'
+        '400':
+          description: 'Erreur lors de la validation'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        '404':
+          description: 'Chauffeur non trouvé'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorNotFoundResponse'
+  '/api/avis/allAvis/{id}':
+    get:
+      summary: 'Récupère la liste de tous les avis associés au chauffeur identifié par id'
+      operationId: b56509b80379e91b1446906ea38458f3
+      parameters:
+        -
+          name: id
+          in: path
+          description: 'Identifiant du chauffeur dont on récupère les avis'
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '200':
+          description: 'Liste de tous les avis du chauffeur'
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvisResponse'
+        '404':
+          description: 'Chauffeur non trouvé'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorNotFoundResponse'
+  /api/avis/avisAVerifier:
+    get:
+      summary: "Récupère la liste de tous les avis dont le statut est 'en attente'"
+      operationId: 353d23882ff582a792bf40a195cd4855
+      responses:
+        '200':
+          description: "Liste de tous les avis dont le statut est 'en attente'"
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/AvisResponse'
+  '/api/avis/validerAvis/{id}':
+    put:
+      summary: 'Valider un avis'
+      operationId: dba91501f2e1865df8f863ac55009706
+      parameters:
+        -
+          name: id
+          in: path
+          description: "Identifiant de l'avis à valider"
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '204':
+          description: 'Avis validé avec succès'
+        '404':
+          description: 'Avis non trouvé'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorNotFoundResponse'
+  '/api/avis/{id}':
+    delete:
+      summary: 'Supprimer un avis'
+      operationId: b124daa9e7dfc3892a56af96a321db88
+      parameters:
+        -
+          name: id
+          in: path
+          description: "Identifiant de l'avis à supprimer"
+          required: true
+          schema:
+            type: integer
+            example: 1
+      responses:
+        '204':
+          description: 'Avis supprimé avec succès.'
+        '404':
+          description: 'Avis non trouvé'
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorNotFoundResponse'
+components:
+  schemas:
+    AvisCreate:
+      required:
+        - note
+      properties:
+        note:
+          type: integer
+          maximum: 5
+          minimum: 1
+          example: 1
+        commentaire:
+          type: string
+          maxLength: 255
+          example: commentaire
+      type: object
+    AvisResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        auteurId:
+          type: integer
+          example: 1
+        auteurPseudo:
+          type: string
+          example: pseudo
+        note:
+          type: integer
+          maximum: 5
+          minimum: 1
+          example: 1
+        commentaire:
+          type: string
+          maxLength: 255
+          example: commentaire
+        statut:
+          type: string
+          example: 'en attente'
+      type: object
+    CommentaireCreate:
+      properties:
+        commentaire:
+          type: string
+          example: commentaire
+        statut:
+          type: string
+          enum:
+            - 'en attente'
+            - résolu
+          example: 'en attente'
+      type: object
+    CommentaireResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        commentaire:
+          type: string
+          example: commentaire
+        statut:
+          type: string
+          enum:
+            - 'en attente'
+            - résolu
+          example: 'en attente'
+      type: object
+    CovoiturageCreate:
+      required:
+        - dateDepart
+        - heureDepart
+        - lieuDepart
+        - dateArrivee
+        - heureArrivee
+        - lieuArrivee
+        - nbPlaces
+      properties:
+        dateDepart:
+          type: string
+          format: date
+          example: '2025-09-02'
+        heureDepart:
+          type: string
+          example: '16:30'
+        lieuDepart:
+          type: string
+          maxLength: 50
+          example: Bordeaux
+        dateArrivee:
+          type: string
+          format: date
+          example: '2025-09-02'
+        heureArrivee:
+          type: string
+          example: '23:30'
+        lieuArrivee:
+          type: string
+          maxLength: 50
+          example: Paris
+        statut:
+          type: string
+          enum:
+            - 'en attente'
+            - 'en cours'
+            - terminé
+          example: 'en attente'
+        nbPlaces:
+          type: integer
+          example: 3
+        prixPersonne:
+          type: string
+          format: decimal
+          example: '10.00'
+      type: object
+    CovoiturageResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        dateDepart:
+          type: string
+          format: date
+          example: '2025-09-02'
+        heureDepart:
+          type: string
+          example: '16:30'
+        lieuDepart:
+          type: string
+          maxLength: 50
+          example: Bordeaux
+        dateArrivee:
+          type: string
+          format: date
+          example: '2025-09-02'
+        heureArrivee:
+          type: string
+          example: '23:30'
+        lieuArrivee:
+          type: string
+          maxLength: 50
+          example: Paris
+        statut:
+          type: string
+          enum:
+            - 'en attente'
+            - 'en cours'
+            - terminé
+          example: 'en attente'
+        nbPlaces:
+          type: integer
+          example: 3
+        prixPersonne:
+          type: string
+          format: decimal
+          example: '10.00'
+        chauffeur:
+          properties:
+            id:
+              type: integer
+              example: 1
+            pseudo:
+              type: string
+              example: pseudo
+            photo:
+              type: string
+              example: uploads/photos/photo.jpg
+            parametres:
+              type: array
+              items:
+                properties:
+                  id: { type: integer, example: 1 }
+                  propriete: { type: string, example: animaux }
+                  valeur: { type: string, example: non }
+                type: object
+          type: object
+        voiture:
+          properties:
+            id:
+              type: integer
+              example: 1
+            marque:
+              type: string
+              example: pseudo
+            modele:
+              type: string
+              example: uploads/photos/photo.jpg
+            couleur:
+              type: string
+              example: uploads/photos/photo.jpg
+          type: object
+        passagers:
+          type: array
+          items:
+            type: integer
+            example: 7
+        noteMoyenne:
+          type: number
+          format: float
+          example: 7.7
+      type: object
+    EmailContact:
+      required:
+        - nom
+        - prenom
+        - email
+        - subject
+        - message
+      properties:
+        nom:
+          type: string
+          example: nom
+        prenom:
+          type: string
+          example: prenom
+        email:
+          type: string
+          example: adresse@email.com
+        subject:
+          type: string
+          example: subject
+        message:
+          type: string
+          example: message
+      type: object
+    EmailCovoiturage:
+      required:
+        - subject
+      properties:
+        subject:
+          type: string
+          enum:
+            - finTrajet
+            - annuler
+            - remboursementEchoue
+            - confirmationPassager
+          example: subject
+        utilisateurs:
+          type: array
+          items:
+            properties:
+              id:
+                type: integer
+                example: 1
+              pseudo:
+                type: string
+                example: pseudo
+              email:
+                type: string
+                example: adresse@email.com
+            type: object
+          nullable: true
+      type: object
+    EmailEmploye:
+      required:
+        - email
+        - subject
+        - message
+      properties:
+        email:
+          type: string
+          example: adresse@email.com
+        subject:
+          type: string
+          example: subject
+        message:
+          type: string
+          example: message
+      type: object
+    ErrorNotFoundResponse:
+      properties:
+        errors:
+          type: string
+          example: 'Ressource non trouvée'
+      type: object
+    ErrorResponse:
+      properties:
+        errors:
+          type: string
+      type: object
+    Login:
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          example: adresse@email.com
+        password:
+          type: string
+          example: 'Mot de passe'
+      type: object
+    OperationCreate:
+      required:
+        - dateOperation
+        - operation
+      properties:
+        dateOperation:
+          type: string
+          format: date
+          example: '2025-09-02'
+        operation:
+          type: string
+          format: decimal
+          example: 10
+      type: object
+    OperationResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        dateOperation:
+          type: string
+          format: date
+          example: '2025-09-02'
+        operation:
+          type: string
+          format: decimal
+          example: 10
+      type: object
+    ParametreCreate:
+      required:
+        - propriete
+        - valeur
+      properties:
+        propriete:
+          type: string
+          example: animaux
+        valeur:
+          type: string
+          example: non
+      type: object
+    ParametreResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        propriete:
+          type: string
+          example: animaux
+        valeur:
+          type: string
+          example: non
+      type: object
+    PasswordCreate:
+      required:
+        - currentPassword
+        - password
+      properties:
+        currentPassword:
+          type: string
+          example: motDePasse
+        password:
+          type: string
+          example: motDePasse123
+      type: object
+    ReponseCreate:
+      required:
+        - reponse1
+      properties:
+        reponse1:
+          type: string
+          enum:
+            - oui
+            - non
+          example: oui
+      type: object
+    ReponseEdit:
+      required:
+        - reponse2
+      properties:
+        reponse2:
+          type: string
+          enum:
+            - oui
+          example: oui
+      type: object
+    ReponseResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        reponse1:
+          type: string
+          enum:
+            - oui
+            - non
+          example: oui
+        reponse2:
+          type: string
+          enum:
+            - oui
+          example: null
+          nullable: true
+        statut:
+          type: string
+          enum:
+            - 'en attente'
+            - résolu
+          example: 'en attente'
+      type: object
+    RoleEntityCreate:
+      required:
+        - role
+      properties:
+        role:
+          type: string
+          enum:
+            - chauffeur
+            - passager
+          example: passager
+      type: object
+    RoleEntityResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        role:
+          type: string
+          example: passager
+      type: object
+    UserCreate:
+      required:
+        - prenom
+        - nom
+        - pseudo
+        - dateNaissance
+        - email
+        - password
+      properties:
+        nom:
+          type: string
+          maxLength: 50
+          example: nom
+        prenom:
+          type: string
+          maxLength: 50
+          example: prenom
+        pseudo:
+          type: string
+          maxLength: 50
+          example: pseudo
+        dateNaissance:
+          type: string
+          format: date
+          example: '1990-01-01'
+        email:
+          type: string
+          example: adresse@email.com
+        password:
+          type: string
+          example: motDePasse
+        telephone:
+          type: string
+          example: '0600000000'
+          nullable: true
+        adresse:
+          type: string
+          maxLength: 255
+          example: '3 place'
+          nullable: true
+      type: object
+    UserEdit:
+      required:
+        - prenom
+        - nom
+        - dateNaissance
+      properties:
+        nom:
+          type: string
+          maxLength: 50
+          example: nom
+        prenom:
+          type: string
+          maxLength: 50
+          example: prenom
+        dateNaissance:
+          type: string
+          format: date
+          example: '1990-01-01'
+        telephone:
+          type: string
+          example: '0600000000'
+          nullable: true
+        adresse:
+          type: string
+          maxLength: 255
+          example: '3 place'
+          nullable: true
+        photo:
+          type: string
+          example: 'Photo encodée en base 64'
+          nullable: true
+        delete_photo:
+          type: boolean
+          example: false
+          nullable: true
+      type: object
+    UserListResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        nom:
+          type: string
+          maxLength: 50
+          example: nom
+        prenom:
+          type: string
+          maxLength: 50
+          example: prenom
+      type: object
+    UserMeResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        nom:
+          type: string
+          maxLength: 50
+          example: nom
+        prenom:
+          type: string
+          maxLength: 50
+          example: prenom
+        pseudo:
+          type: string
+          maxLength: 50
+          example: pseudo
+        photo:
+          type: string
+          maxLength: 255
+          example: uploads/photos/photo_689328197.png
+          nullable: true
+        dateNaissance:
+          type: string
+          format: date
+          example: '1990-01-01'
+        email:
+          type: string
+          example: adresse@email.com
+        telephone:
+          type: string
+          example: '0600000000'
+          nullable: true
+        adresse:
+          type: string
+          maxLength: 255
+          example: '3 place'
+          nullable: true
+        apiToken:
+          type: string
+          example: 31a023e212f116124a36af14ea0c1c3806eb9378
+        roles:
+          type: array
+          items:
+            type: string
+            example: ROLE_USER
+      type: object
+    UserResponse:
+      properties:
+        user:
+          type: string
+          example: "Nom d'utilisateur"
+        apiToken:
+          type: string
+          example: 31a023e212f116124a36af14ea0c1c3806eb9378
+        roles:
+          type: array
+          items:
+            type: string
+            example: ROLE_USER
+      type: object
+    VoitureCreate:
+      required:
+        - marque
+        - modele
+        - immatriculation
+        - energie
+        - couleur
+        - datePremiereImmatriculation
+        - nbPlaces
+      properties:
+        marque:
+          required:
+            - libelle
+          properties:
+            libelle:
+              type: string
+              maxLength: 50
+              example: voiture
+          type: object
+        modele:
+          type: string
+          maxLength: 50
+          example: modele
+        immatriculation:
+          type: string
+          maxLength: 50
+          example: AB-123-CD
+        energie:
+          type: string
+          enum:
+            - essence
+            - electricite
+          example: essence
+        couleur:
+          type: string
+          maxLength: 50
+          example: blanche
+        datePremiereImmatriculation:
+          type: string
+          example: '1990-01-01'
+        nbPlaces:
+          type: integer
+          example: 1
+      type: object
+    VoitureResponse:
+      properties:
+        id:
+          type: integer
+          example: 1
+        marque:
+          required:
+            - libelle
+          properties:
+            libelle:
+              type: string
+              maxLength: 50
+              example: voiture
+          type: object
+        modele:
+          type: string
+          maxLength: 50
+          example: modele
+        immatriculation:
+          type: string
+          maxLength: 50
+          example: AB-123-CD
+        energie:
+          type: string
+          enum:
+            - essence
+            - electricite
+          example: essence
+        couleur:
+          type: string
+          maxLength: 50
+          example: blanche
+        datePremiereImmatriculation:
+          type: string
+          example: '1990-01-01'
+        nbPlaces:
+          type: integer
+          example: 1
+      type: object

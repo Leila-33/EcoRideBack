@@ -1,28 +1,31 @@
 <?php
 
 namespace App\Entity;
-use App\Repository\AvisRepository;
+
 use App\Repository\UserRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 use Symfony\Component\Security\Core\User\UserInterface;
-use Symfony\Component\validator\Constraints as Assert;
+use Symfony\Component\Validator\Constraints as Assert;
+use Symfony\Component\Validator\Context\ExecutionContextInterface;
+
 #[ORM\Entity(repositoryClass: UserRepository::class)]
+#[UniqueEntity(fields: ['pseudo'], message: 'Ce pseudo est déjà enregistré.')]
+#[UniqueEntity(fields: ['email'], message: 'Cette adresse email est déjà enregistrée.')]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
     private ?int $id = null;
-   
+
     #[ORM\Column(length: 180, unique: true)]
-    #[Assert\NotBlank]
-    #[Assert\Email(
-        message: "L'email {{ value }} n'est pas une adresse email valide."
-    )]
+    #[Assert\NotBlank(message: "L'adresse email est obligatoire.")]
+    #[Assert\Email(message: "L'email {{ value }} n'est pas une adresse email valide.")]
     private ?string $email = null;
 
     #[ORM\Column]
@@ -32,89 +35,117 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string The hashed password
      */
     #[ORM\Column]
-    #[Assert\NotBlank]
+    #[Assert\NotBlank(message: 'Le mot de passe est obligatoire.')]
     #[Assert\Regex(
-        pattern: '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{8,}$/',
-        message: "Le mot de passe n'est pas assez robuste : au moins 8 caractères, comprenant au moins 1 majuscule, 1 minuscule, 1 chiffre et 1 caractère spécial"
-)]
+        pattern: '/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_])[A-Za-z\d\W_]{12,}$/',
+        message: 'Le mot de passe doit contenir au moins 12 caractères dont au moins une majuscule, une minuscule, un chiffre et un caractère spécial'
+    )]
     private ?string $password = null;
 
     #[ORM\Column(length: 50)]
-    #[Assert\NotBlank]
+    #[Assert\Length(max: 50, maxMessage: 'Le nom ne doit pas dépasser 50 caractères.')]
+    #[Assert\NotBlank(message: 'Le nom est obligatoire.')]
     private ?string $nom = null;
 
     #[ORM\Column(length: 50)]
-    #[Assert\NotBlank]
+    #[Assert\Length(max: 50, maxMessage: 'Le prénom ne doit pas dépasser 50 caractères.')]
+    #[Assert\NotBlank(message: 'Le prénom est obligatoire.')]
     private ?string $prenom = null;
 
     #[ORM\Column(length: 50, nullable: true)]
     #[Assert\Regex(
-        pattern:'/^[0-9]{10}$/',
-         message:"Le telephone n'est pas au bon format."
-)]
+        pattern: '/^[0-9]{10}$/',
+        message: "Le téléphone n'est pas au bon format.")]
     private ?string $telephone = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255, maxMessage: "L'adresse ne doit pas dépasser 255 caractères.")]
     private ?string $adresse = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
-    #[Assert\Regex(
-        pattern:'/^[0-9]{2}[/][0-9]{2}[/][0-9]{4}$/',
-         message:"La date de naissance n'est pas au bon format."
-)]
-    private ?string $date_naissance = null;
+    #[ORM\Column(type: Types::DATE_MUTABLE)]
+    #[Assert\NotNull(message: 'La date de naissance est obligatoire.')]
+    #[Assert\Type(type: \DateTimeInterface::class, message : 'La date de naissance doit être une date valide.')]
+    private ?\DateTimeInterface $dateNaissance = null;
 
-    #[ORM\Column(type: Types::BLOB, nullable: true)]
-    private $photo = null;
+    #[Assert\Callback]
+    public function validateDateNaissance(ExecutionContextInterface $context)
+    {
+        if (!$this->dateNaissance) {
+            return;
+        }
+        $today = new \DateTime();
+        $age = $today->diff($this->dateNaissance)->y;
+        if ($this->dateNaissance >= $today) {
+            $context->buildViolation('La date de naissance ne peut pas être aujourd\'hui ou dans le futur.')
+            ->atPath('dateNaissance')
+            ->addViolation();
+        } elseif ($age < 18) {
+            $context->buildViolation('L\'âge ne peut doit être supérieur ou égal à 18 ans.')
+            ->atPath('dateNaissance')
+            ->addViolation();
+        }
+    }
 
-    #[ORM\Column(length: 50)]
-    #[Assert\NotBlank]
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\Length(max: 50, maxMessage: 'Le pseudo ne doit pas dépasser 50 caractères.')]
+    #[Assert\NotBlank(message: 'Le pseudo est obligatoire.')]
     private ?string $pseudo = null;
 
-    #[ORM\ManyToMany(targetEntity: Role::class, inversedBy: 'users')]
-    private Collection $role;
-
-    #[ORM\OneToMany(targetEntity: Avis::class, mappedBy: 'user', orphanRemoval: true)]
+    #[ORM\OneToMany(targetEntity: Avis::class, mappedBy: 'auteur', orphanRemoval: true)]
     private Collection $avis;
 
-    #[ORM\OneToMany(targetEntity: Voiture::class, mappedBy: 'user', orphanRemoval: true, fetch:'EAGER')]
+    #[ORM\OneToMany(targetEntity: Voiture::class, mappedBy: 'user', orphanRemoval: true, fetch: 'EAGER')]
     private Collection $voitures;
 
     #[ORM\ManyToMany(targetEntity: Covoiturage::class, inversedBy: 'users')]
     private Collection $covoiturages;
-   
+
     #[ORM\Column(length: 255)]
     private ?string $apiToken = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
-    private ?string $photoMime = null;
-
-    #[ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'],fetch:'EAGER')]
+    #[ORM\OneToOne(inversedBy: 'user', cascade: ['persist', 'remove'], fetch: 'EAGER')]
     #[ORM\JoinColumn(nullable: false)]
     private ?Credit $credit = null;
 
     #[ORM\OneToMany(targetEntity: Operation::class, mappedBy: 'user', orphanRemoval: true)]
-    private Collection $operation;
-
-    #[ORM\OneToMany(targetEntity: Parametre::class, mappedBy: 'user', orphanRemoval: true)]
-    private Collection $parametres;
+    private Collection $operations;
 
     #[ORM\OneToMany(targetEntity: Reponse::class, mappedBy: 'user', orphanRemoval: true)]
     private Collection $reponses;
 
+    /**
+     * @var Collection<int, Parametre>
+     */
+    #[ORM\ManyToMany(targetEntity: Parametre::class, inversedBy: 'users')]
+    private Collection $parametres;
 
+    /**
+     * @var Collection<int, RoleEntity>
+     */
+    #[ORM\ManyToMany(targetEntity: RoleEntity::class, cascade: ['persist'], inversedBy: 'users')]
+    private Collection $roleEntities;
 
- 
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255, maxMessage: 'Le chemin de la photo ne doit pas dépasser 255 caractères.')]
+    private ?string $photo = null;
+
+    /**
+     * @var Collection<int, Avis>
+     */
+    #[ORM\OneToMany(mappedBy: 'chauffeur', targetEntity: Avis::class, orphanRemoval: true)]
+    private Collection $avisRecus;
+
     public function __construct()
     {
-        $this->role = new ArrayCollection();
         $this->avis = new ArrayCollection();
         $this->voitures = new ArrayCollection();
         $this->covoiturages = new ArrayCollection();
-        $this->apiToken=bin2hex(random_bytes(20));
-        $this->operation = new ArrayCollection();
-        $this->parametres = new ArrayCollection();
+        $this->apiToken = bin2hex(random_bytes(20));
+        $this->operations = new ArrayCollection();
         $this->reponses = new ArrayCollection();
+        $this->parametres = new ArrayCollection();
+        $this->roleEntities = new ArrayCollection();
+        $this->avisRecus = new ArrayCollection();
     }
 
     public function getId(): ?int
@@ -254,29 +285,23 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-    public function getDateNaissance(): ?string
+    public function getDateNaissance(): ?\DateTimeInterface
     {
-        return $this->date_naissance;
+        return $this->dateNaissance;
     }
 
-    public function setDateNaissance(?string $date_naissance): static
+    public function setDateNaissance(?\DateTimeInterface $dateNaissance): static
     {
-        $this->date_naissance = $date_naissance;
+        $this->dateNaissance = $dateNaissance;
 
         return $this;
     }
 
-    /*public function getPhoto()
-    {
-        return $this->photo;
-    }*/
     public function getPhoto(): ?string
     {
-        if (!is_resource($this->photo)){
-        return null;}
-        rewind($this->photo);
-        return base64_encode(stream_get_contents($this->photo));
+        return $this->photo;
     }
+
     public function setPhoto($photo): static
     {
         $this->photo = $photo;
@@ -297,30 +322,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     }
 
     /**
-     * @return Collection<int, role>
-     */
-    public function getRole(): Collection
-    {
-        return $this->role;
-    }
-
-    public function addRole(role $role): static
-    {
-        if (!$this->role->contains($role)) {
-            $this->role->add($role);
-        }
-
-        return $this;
-    }
-
-    public function removeRole(role $role): static
-    {
-        $this->role->removeElement($role);
-
-        return $this;
-    }
-
-    /**
      * @return Collection<int, Avis>
      */
     public function getAvis(): Collection
@@ -332,7 +333,7 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if (!$this->avis->contains($avi)) {
             $this->avis->add($avi);
-            $avi->setUser($this);
+            $avi->setAuteur($this);
         }
 
         return $this;
@@ -342,8 +343,8 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     {
         if ($this->avis->removeElement($avi)) {
             // set the owning side to null (unless already changed)
-            if ($avi->getUser() === $this) {
-                $avi->setUser(null);
+            if ($avi->getAuteur() === $this) {
+                $avi->setAuteur(null);
             }
         }
 
@@ -404,11 +405,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
-
-
-
-  
-
     public function getApiToken(): ?string
     {
         return $this->apiToken;
@@ -417,18 +413,6 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     public function setApiToken(string $apiToken): static
     {
         $this->apiToken = $apiToken;
-
-        return $this;
-    }
-
-    public function getPhotoMime(): ?string
-    {
-        return $this->photoMime;
-    }
-
-    public function setPhotoMime(?string $photoMime): static
-    {
-        $this->photoMime = $photoMime;
 
         return $this;
     }
@@ -448,15 +432,15 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     /**
      * @return Collection<int, Operation>
      */
-    public function getOperation(): Collection
+    public function getOperations(): Collection
     {
-        return $this->operation;
+        return $this->operations;
     }
 
     public function addOperation(Operation $operation): static
     {
-        if (!$this->operation->contains($operation)) {
-            $this->operation->add($operation);
+        if (!$this->operations->contains($operation)) {
+            $this->operations->add($operation);
             $operation->setUser($this);
         }
 
@@ -465,40 +449,10 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
 
     public function removeOperation(Operation $operation): static
     {
-        if ($this->operation->removeElement($operation)) {
+        if ($this->operations->removeElement($operation)) {
             // set the owning side to null (unless already changed)
             if ($operation->getUser() === $this) {
                 $operation->setUser(null);
-            }
-        }
-
-        return $this;
-    }
-
-    /**
-     * @return Collection<int, Parametre>
-     */
-    public function getParametres(): Collection
-    {
-        return $this->parametres;
-    }
-
-    public function addParametre(Parametre $parametre): static
-    {
-        if (!$this->parametres->contains($parametre)) {
-            $this->parametres->add($parametre);
-            $parametre->setUser($this);
-        }
-
-        return $this;
-    }
-
-    public function removeParametre(Parametre $parametre): static
-    {
-        if ($this->parametres->removeElement($parametre)) {
-            // set the owning side to null (unless already changed)
-            if ($parametre->getUser() === $this) {
-                $parametre->setUser(null);
             }
         }
 
@@ -535,6 +489,81 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    /**
+     * @return Collection<int, Parametre>
+     */
+    public function getParametres(): Collection
+    {
+        return $this->parametres;
+    }
 
+    public function addParametre(Parametre $parametre): static
+    {
+        if (!$this->parametres->contains($parametre)) {
+            $this->parametres->add($parametre);
+        }
 
+        return $this;
+    }
+
+    public function removeParametre(Parametre $parametre): static
+    {
+        $this->parametres->removeElement($parametre);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, RoleEntity>
+     */
+    public function getRoleEntities(): Collection
+    {
+        return $this->roleEntities;
+    }
+
+    public function addRoleEntity(RoleEntity $roleEntity): static
+    {
+        if (!$this->roleEntities->contains($roleEntity)) {
+            $this->roleEntities->add($roleEntity);
+        }
+
+        return $this;
+    }
+
+    public function removeRoleEntity(RoleEntity $roleEntity): static
+    {
+        $this->roleEntities->removeElement($roleEntity);
+
+        return $this;
+    }
+
+    /**
+     * @return Collection<int, Avis>
+     */
+    public function getAvisRecus(): Collection
+    {
+        return $this->avisRecus;
+    }
+
+    public function addAvisRecu(Avis $avisRecu): static
+    {
+        if (!$this->avisRecus->contains($avisRecu)) {
+            $this->avisRecus->add($avisRecu);
+            $avisRecu->setChauffeur($this);
+        }
+
+        return $this;
+    }
+
+    public function removeAvisRecu(Avis $avisRecu): static
+    {
+        if ($this->avisRecus->removeElement($avisRecu)) {
+            // set the owning side to null (unless already changed)
+            if ($avisRecu->getChauffeur() === $this) {
+                $avisRecu->setChauffeur(null);
+            }
+        }
+
+        return $this;
+    }
 }

@@ -2,6 +2,7 @@
 
 namespace App\Repository;
 
+use App\Entity\Commentaire;
 use App\Entity\Reponse;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
@@ -20,12 +21,28 @@ class ReponseRepository extends ServiceEntityRepository
     {
         parent::__construct($registry, Reponse::class);
     }
-  public function findById(string $user,string $covoiturage): array{
-        $conn=$this->getEntityManager()->getConnection();
-        $sql='SELECT * FROM reponse r WHERE (r.user_id= :val) AND (r.covoiturage_id= :val1)' ;
-        $resultSet=$conn->executeQuery($sql,['val'=>$user,'val1'=>$covoiturage]);
-        return $resultSet->fetchAllAssociative();
-        }
+
+    public function countByCovoiturages(int $id): int
+    {
+        return $this->createQueryBuilder('r')
+        ->select('COUNT(r.id)')
+        ->where('r.covoiturage=:id')
+        ->setParameter('id', $id)
+        ->getQuery()
+        ->getSingleScalarResult();
+    }
+
+    public function findReponsesNon(): array
+    {
+        return $this->createQueryBuilder('r')
+        ->leftJoin(Commentaire::class, 'c', 'WITH', 'c.covoiturage = r.covoiturage AND c.auteur = r.user')
+        ->addSelect('c')
+        ->where('r.reponse1 = :non')
+        ->setParameter('non', 'non')
+        ->getQuery()
+        ->getResult();
+    }
+}
 //    /**
 //     * @return Reponse[] Returns an array of Reponse objects
 //     */
@@ -50,4 +67,3 @@ class ReponseRepository extends ServiceEntityRepository
 //            ->getOneOrNullResult()
 //        ;
 //    }
-}

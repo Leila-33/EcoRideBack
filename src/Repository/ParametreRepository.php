@@ -3,6 +3,7 @@
 namespace App\Repository;
 
 use App\Entity\Parametre;
+use App\Entity\User;
 use Doctrine\Bundle\DoctrineBundle\Repository\ServiceEntityRepository;
 use Doctrine\Persistence\ManagerRegistry;
 
@@ -21,18 +22,28 @@ class ParametreRepository extends ServiceEntityRepository
         parent::__construct($registry, Parametre::class);
     }
 
-     public function findByUser(int $id): array{
-        $conn=$this->getEntityManager()->getConnection();
-        $sql='SELECT * FROM parametre p WHERE (p.user_id = :val)';        
-        $resultSet=$conn->executeQuery($sql,['val'=>$id]);
+    public function findByUser(int $id): array
+    {
+        $conn = $this->getEntityManager()->getConnection();
+        $sql = 'SELECT * FROM parametre p WHERE (p.user_id = :val)';
+        $resultSet = $conn->executeQuery($sql, ['val' => $id]);
+
         return $resultSet->fetchAllAssociative();
-        }
-           
+    }
 
+    public function findOneByUserAndProperty(User $user, string $propriete)
+    {
+        return $this->createQueryBuilder('p')
+         ->innerJoin('p.users', 'u')
+         ->where('u = :user')
+         ->andWhere('p.propriete = :propriete')
+         ->setParameters(['user' => $user,
+             'propriete' => $propriete])
+         ->getQuery()
+         ->getOneOrNullResult();
+    }
+}
 
-
-    }  
-        
 //    /**
 //     * @return Parametre[] Returns an array of Parametre objects
 //     */
@@ -57,4 +68,3 @@ class ParametreRepository extends ServiceEntityRepository
 //            ->getOneOrNullResult()
 //        ;
 //    }
-

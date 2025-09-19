@@ -3,9 +3,9 @@
 namespace App\Entity;
 
 use App\Repository\AvisRepository;
-use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: AvisRepository::class)]
 class Avis
@@ -15,28 +15,28 @@ class Avis
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50, nullable: true)]
-    private ?string $commentaire = null;
+    #[ORM\Column(type: 'integer')]
+    #[Assert\NotNull(message: 'La note est obligatoire.')]
+    #[Assert\Range(min: 1, max: 5, notInRangeMessage: 'La note doit être comprise entre {{ min }} et {{ max }}.')]
+    private ?int $note = null;
 
     #[ORM\Column(length: 50)]
-    #[Assert\NotBlank]
-    #[Assert\Positive]
-    private ?string $note = null;
-
-    #[ORM\Column(length: 50)]
-    #[Assert\Choice(['en attente','validé'])]
+    #[Assert\NotBlank(message: 'Le statut est obligatoire')]
+    #[Assert\Choice(['en attente', 'validé'], message: "Le statut doit être 'en attente' ou 'validé'.")]
     private ?string $statut = null;
 
     #[ORM\ManyToOne(inversedBy: 'avis')]
     #[ORM\JoinColumn(nullable: false)]
-    private ?user $user = null;
+    private ?User $auteur = null;
 
-    #[ORM\Column]
-    #[Assert\NotBlank]
-    #[Assert\Positive]
-    private ?int $idChauffeur = null;
+    #[ORM\Column(length: 255, nullable: true)]
+    #[Assert\Length(max: 255, maxMessage: 'Le commentaire ne doit pas dépasser 255 caractères.')]
+    private ?string $commentaire = null;
 
-  
+    #[ORM\ManyToOne(inversedBy: 'avisRecus')]
+    #[ORM\JoinColumn(nullable: false)]
+    private ?User $chauffeur = null;
+
     public function __construct()
     {
     }
@@ -46,24 +46,12 @@ class Avis
         return $this->id;
     }
 
-    public function getCommentaire(): ?string
-    {
-        return $this->commentaire;
-    }
-
-    public function setCommentaire(?string $commentaire): static
-    {
-        $this->commentaire = $commentaire;
-
-        return $this;
-    }
-
-    public function getNote(): ?string
+    public function getNote(): ?int
     {
         return $this->note;
     }
 
-    public function setNote(string $note): static
+    public function setNote(int $note): static
     {
         $this->note = $note;
 
@@ -85,31 +73,39 @@ class Avis
     /**
      * @return Collection<int, User>
      */
-
-    public function getUser(): ?user
+    public function getAuteur(): ?User
     {
-        return $this->user;
+        return $this->auteur;
     }
 
-    public function setUser(?user $user): static
+    public function setAuteur(?user $user): static
     {
-        $this->user = $user;
+        $this->auteur = $user;
 
         return $this;
     }
 
-    public function getIdChauffeur(): ?int
+    public function getCommentaire(): ?string
     {
-        return $this->idChauffeur;
+        return $this->commentaire;
     }
 
-    public function setIdChauffeur(int $idChauffeur): static
+    public function setCommentaire(?string $commentaire): static
     {
-        $this->idChauffeur = $idChauffeur;
+        $this->commentaire = $commentaire;
 
         return $this;
     }
 
+    public function getChauffeur(): ?User
+    {
+        return $this->chauffeur;
+    }
 
+    public function setChauffeur(?User $chauffeur): static
+    {
+        $this->chauffeur = $chauffeur;
 
+        return $this;
+    }
 }

@@ -6,8 +6,10 @@ use App\Repository\MarqueRepository;
 use Doctrine\Common\Collections\ArrayCollection;
 use Doctrine\Common\Collections\Collection;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Validator\Constraints as Assert;
 
 #[ORM\Entity(repositoryClass: MarqueRepository::class)]
+#[UniqueEntity(fields: ['libelle'], message: 'Cette marque est déjà enregistrée.')]
 class Marque
 {
     #[ORM\Id]
@@ -15,8 +17,9 @@ class Marque
     #[ORM\Column]
     private ?int $id = null;
 
-    #[ORM\Column(length: 50)]
-    #[Assert\NotBlank]
+    #[ORM\Column(length: 50, unique: true)]
+    #[Assert\Length(max: 50, maxMessage: 'La marque ne doit pas dépasser 50 caractères.')]
+    #[Assert\NotBlank(message: 'La marque est obligatoire.')]
     private ?string $libelle = null;
 
     #[ORM\OneToMany(targetEntity: Voiture::class, mappedBy: 'marque', orphanRemoval: true)]
