@@ -35,7 +35,8 @@ use OpenApi\Attributes as OA;
                 new OA\Property(property: 'modele', type: 'string', example: 'uploads/photos/photo.jpg'),
                 new OA\Property(property: 'couleur', type: 'string', example: 'uploads/photos/photo.jpg'),
                                ]),
-        new OA\Property(property: 'passagers', type: 'array', items: new OA\Items(type: 'integer', example: 7)),
+        new OA\Property(property: 'users', type: 'array', items: new OA\Items(type:'object', properties: [
+            new OA\Property(property: 'id', type: 'integer', example:1)])),
         new OA\Property(property: 'noteMoyenne', type: 'float', example: 7.7)])]
 class CovoiturageResponseDto
 {

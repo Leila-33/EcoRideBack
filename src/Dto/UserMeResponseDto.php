@@ -18,7 +18,14 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'adresse', type: 'string', nullable: true, example: '3 place', maxLength: 255),
         new OA\Property(property: 'apiToken', type: 'string', example: '31a023e212f116124a36af14ea0c1c3806eb9378'),
         new OA\Property(property: 'roles', type: 'array', items: new OA\Items(type: 'string', example: 'ROLE_USER')),
-        new OA\Property(property: 'credit', type: 'array', items: new OA\Items(type: 'string', example: 'ROLE_USER')),
+        new OA\Property(property: 'credit', type: 'object', properties: [
+            new OA\Property(property: 'id', type: 'integer', example:1),
+            new OA\Property(property: 'total', type: 'number', format:'float', example:50.0)]),
+        new OA\Property(property: 'parametres', type: 'array', items: new OA\Items(type:'object', properties: [
+            new OA\Property(property: 'id', type: 'integer', example:1),
+            new OA\Property(property: 'propriete', type: 'string', example:'fumeurs'),
+            new OA\Property(property: 'valeur', type: 'string', example:'non')]))
+
     ])]
 class UserMeResponseDto
 {
