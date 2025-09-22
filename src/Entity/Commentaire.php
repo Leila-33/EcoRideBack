@@ -34,12 +34,12 @@ class Commentaire
 
     public function getAuteur(): ?User
     {
-        return $this->Auteur;
+        return $this->auteur;
     }
 
     public function setAuteur(?User $auteur): static
     {
-        $this->Auteur = $auteur;
+        $this->auteur = $auteur;
 
         return $this;
     }

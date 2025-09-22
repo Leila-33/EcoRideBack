@@ -55,7 +55,7 @@ class VoitureController extends AbstractController
         $this->manager->remove($voiture);
         $this->manager->flush();
 
-        return new Response(null, Response::HTTP_NO_CONTENT);
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
     #[Route('/addVoiture', name: 'addVoiture', methods: ['POST'])]

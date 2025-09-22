@@ -112,7 +112,7 @@ class ReponseController extends AbstractController
             return new JsonResponse(['error' => 'Réponse non trouvée.'], Response::HTTP_NOT_FOUND);
         }
 
-        return new JsonResponse($this->toArray2($reponse), Response::HTTP_OK, [], true);
+        return new JsonResponse($this->toArray2($reponse), Response::HTTP_OK);
     }
 
     #[Route('/reponsesNon', name: 'reponseNon', methods: ['GET'])]
@@ -180,6 +180,36 @@ class ReponseController extends AbstractController
         return new JsonResponse($this->toArray2($reponse), Response::HTTP_OK);
     }
 
+        #[Route('/setStatutResolu/{id}', name: 'setStatutResolu', methods: ['PUT'])]
+    #[OA\Put(
+        path: '/api/reponse/setStatutResolu/{id}',
+        summary: "Marquer la réponse comme résolue.",
+        parameters: [new OA\Parameter(
+            name: 'id',
+            in: 'path',
+            required: true,
+            description: 'Identifiant de la réponse',
+            schema: new OA\Schema(type: 'integer', example: 1)
+        )],
+
+        responses: [
+            new OA\Response(response: 204, description: 'Statut changé avec succès'),
+            new OA\Response(response: 404, description: 'Réponse introuvable', content: ['application/json' => new OA\JsonContent(ref: '#/components/schemas/ErrorNotFoundResponseDto')])])]
+    public function setStatutResolu(int $id, Request $request, ValidatorInterface $validator): JsonResponse
+    {
+        $reponse = $this->repository->findOneBy(['id' => $id]);
+        if (!$reponse) {
+            return new JsonResponse(['error' => 'Réponse introuvable'], Response::HTTP_NOT_FOUND);
+        }
+        $reponse->setStatut('résolu');
+        if ($errorResponse = Validator::validateEntity($reponse, $validator)) {
+            return $errorResponse;
+        }
+        $this->manager->flush();
+
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
+    }
+
     #[Route('/getNbReponses/{id}', name: 'getNbReponses', methods: ['GET'])]
     #[OA\Get(
         path: '/api/reponse/getNbReponses/{id}',
@@ -240,6 +270,7 @@ class ReponseController extends AbstractController
                 'lieuArrivee' => $covoiturage->getLieuArrivee(),
                 'prixPersonne' => $covoiturage->getPrixPersonne(),
                 'chauffeur' => [
+                    'id' => $covoiturage->getVoiture()->getUser()->getId(),
                     'email' => $covoiturage->getVoiture()->getUser()->getEmail()],
             ],
             'commentaire' => $commentaire ? [

@@ -16,6 +16,7 @@ use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Component\Routing\Generator\UrlGeneratorInterface;
 use Symfony\Component\Serializer\SerializerInterface;
 use Symfony\Component\Validator\Validator\ValidatorInterface;
+use App\Utilis\Sanitizer;
 
 #[Route('/api/commentaire', name: 'app_api_commentaire_')]
 class CommentaireController extends AbstractController
@@ -68,17 +69,17 @@ class CommentaireController extends AbstractController
         $commentaire = new Commentaire();
         $data = json_decode($request->getContent(), true);
         $commentaire->setCommentaire(Sanitizer::sanitizeText($data['commentaire'] ?? null));
-        $commentaire->setStatut('en attente');
         $commentaire->setAuteur($this->getUser());
         $commentaire->setCovoiturage($covoiturage);
         if ($errorResponse = Validator::validateEntity($commentaire, $validator)) {
             return $errorResponse;
         }
+
         $this->manager->persist($commentaire);
         $this->manager->flush();
 
         return new JsonResponse(['id' => $commentaire->getId(),
             'commentaire' => $commentaire->getCommentaire(),
-            'statut' => $commentaire->getStatut(), ], Response::HTTP_CREATED);
+ ], Response::HTTP_CREATED);
     }
 }

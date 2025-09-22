@@ -68,7 +68,7 @@ class CovoiturageController extends AbstractController
                 'modele' => $voiture->getModele(),
                 'couleur' => $voiture->getCouleur(),
             ],
-            'passagers' => array_map(fn ($p) => $p->getId(), $covoiturage->getUsers()->toArray()),
+            'users' => array_map(fn ($p) =>['id' => $p->getId()], $covoiturage->getUsers()->toArray()),
             'noteMoyenne' => $this->avisrepository->getMoyenneChauffeur($covoiturage->getVoiture()->getUser()->getId())];
     }
 
@@ -138,7 +138,7 @@ class CovoiturageController extends AbstractController
         $this->manager->flush();
         $location = $this->generateUrl('app_api_covoiturage_show', ['id' => $covoiturage->getId()], UrlGeneratorInterface::ABSOLUTE_URL);
 
-        return new JsonResponse($this->formatCovoiturage($covoiturage), Response::HTTP_CREATED, ['Location' => $location], true);
+        return new JsonResponse($this->formatCovoiturage($covoiturage), Response::HTTP_CREATED, ['Location' => $location]);
     }
 
     #[Route('/allCovoiturages/{idChauffeur?}', name: 'allCovoiturages_chauffeur', methods: ['GET'])]

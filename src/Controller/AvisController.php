@@ -116,7 +116,8 @@ class AvisController extends AbstractController
         }
         $avisList = $this->repository->findBy(['chauffeur' => $id]);
         $avisFiltered = array_map(function ($avis) {
-            if ('validé' === $avis->getStatut() || $avis->getAuteur()->getId() === $this->getUser()->getId()) {
+            $user = $this->getUser();
+            if ('validé' === $avis->getStatut() || ($user && $avis->getAuteur()->getId() === $user->getId())) {
                 return $this->toArray($avis);
             }
 

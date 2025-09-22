@@ -35,10 +35,13 @@ class ReponseRepository extends ServiceEntityRepository
     public function findReponsesNon(): array
     {
         return $this->createQueryBuilder('r')
-        ->leftJoin(Commentaire::class, 'c', 'WITH', 'c.covoiturage = r.covoiturage AND c.auteur = r.user')
-        ->addSelect('c')
+        ->leftJoin('r.covoiturage', 'cov')
+        ->leftJoin('cov.commentaires', 'c', 'WITH', 'c.auteur = r.user')
+        ->addSelect('cov', 'c')
         ->where('r.reponse1 = :non')
+        ->andWhere('r.statut = :statut')
         ->setParameter('non', 'non')
+        ->setParameter('statut', 'en attente')
         ->getQuery()
         ->getResult();
     }

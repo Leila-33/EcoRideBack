@@ -2,7 +2,7 @@ nelmio_cors:
     defaults:
         allow_credentials: true
         origin_regex: true
-        allow_origin: ['%env(CORS_ALLOW_ORIGIN)%']
+        allow_origin: [https://ecoride.e-mecaformation.com]
         allow_methods: ['GET', 'OPTIONS', 'POST', 'PUT', 'PATCH', 'DELETE']
         allow_headers: ['Content-Type', 'Authorization','X-AUTH-TOKEN', 'X-CSRF-TOKEN']
         expose_headers: ['Link']

@@ -67,7 +67,7 @@ class SecurityController extends AbstractController
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            $image = imagecreatefromstring($decoded);
+            $image = \imagecreatefromstring($decoded);
             if (!$image) {
                 return new JsonResponse(['error' => 'Erreur lors du traitement de l\'image.'], Response::HTTP_BAD_REQUEST);
             }
@@ -88,6 +88,9 @@ class SecurityController extends AbstractController
         $user->setEmail(Sanitizer::sanitizeText($data['email']));
         $user->setTelephone($data['telephone'] ?? '');
         $user->setAdresse(Sanitizer::sanitizeText($data['adresse'] ?? ''));
+        if (isset($data['roles']) && is_array($data['roles'])){ 
+            $user->setRoles($data['roles']);
+        }
         $user->setPassword($data['password']);
         if ($errorResponse = Validator::validateEntity($user, $validator)) {
             return $errorResponse;
@@ -218,11 +221,11 @@ class SecurityController extends AbstractController
             }
             $extension = 'image/png' === $imgInfo['mime'] ? 'png' : 'jpg';
             $filename = uniqid('photo_', true).'.'.$extension;
-            $uploadDir = $this->getParameter('kernel.project_dir').'/uploads/photos/';
+            $uploadDir = $this->getParameter('kernel.project_dir').'/public/uploads/photos/';
             if (!is_dir($uploadDir)) {
                 mkdir($uploadDir, 0755, true);
             }
-            $image = imagecreatefromstring($decoded);
+            $image = \imagecreatefromstring($decoded);
             if (!$image) {
                 return new JsonResponse(['error' => 'Erreur lors du traitement de l\'image.'], Response::HTTP_BAD_REQUEST);
             }
@@ -258,7 +261,6 @@ class SecurityController extends AbstractController
             return $errorResponse;
         }
         $this->manager->flush();
-
         return new JsonResponse($this->toArray($user), Response::HTTP_OK);
     }
 
@@ -296,7 +298,7 @@ class SecurityController extends AbstractController
         $user->setPassword($this->passwordHasher->hashPassword($user, $user->getPassword()));
         $this->manager->flush();
 
-        return new Response(null, Response::HTTP_NO_CONTENT);
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
     // Supprimer la photo d'un utilisateur
@@ -304,7 +306,7 @@ class SecurityController extends AbstractController
     {
         $photo = $user->getPhoto();
         if ($photo) {
-            $uploadDir = $this->getParameter('kernel.project_dir').'/uploads/photos/';
+            $uploadDir = $this->getParameter('kernel.project_dir').'/public/uploads/photos/';
             $oldPhotoPath = $uploadDir.basename($photo);
             if (file_exists($oldPhotoPath)) {
                 unlink($oldPhotoPath);
@@ -338,7 +340,7 @@ class SecurityController extends AbstractController
         $this->manager->remove($user);
         $this->manager->flush();
 
-        return new Response(null, Response::HTTP_NO_CONTENT);
+        return new JsonResponse(null, Response::HTTP_NO_CONTENT);
     }
 
     public function toArray(User $user): array
@@ -359,6 +361,10 @@ class SecurityController extends AbstractController
                 'id' => $p->getId(),
                 'propriete' => $p->getPropriete(),
                 'valeur' => $p->getValeur(),
-            ], $user->getParametres()->toArray())];
+            ], $user->getParametres()->toArray()),
+            'credit' =>  [
+                'id' => $user->getCredit()->getId(),
+                'total' => $user->getCredit()->getTotal()
+            ]];
     }
 }
